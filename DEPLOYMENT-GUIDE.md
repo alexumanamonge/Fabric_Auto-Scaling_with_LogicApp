@@ -78,7 +78,18 @@ cd Fabric_Auto-Scaling_with_LogicApp
 
 ## Deployment Methods
 
-### Method 1: PowerShell Script (Recommended for Windows)
+### Method 1: Azure Portal (Deploy to Azure Button)
+
+1. Click **Deploy to Azure** button in README
+2. Fill in the deployment form in Azure Portal
+3. Click **Review + create** → **Create**
+4. After deployment, manually deploy Function App code:
+   ```bash
+   cd FunctionApp
+   func azure functionapp publish <FUNCTION_APP_NAME> --python
+   ```
+
+### Method 2: PowerShell Script (Recommended for Windows)
 
 ```powershell
 # Login to Azure
@@ -107,7 +118,7 @@ az account set --subscription "<SUBSCRIPTION_ID>"
 3. Displays principal IDs for role assignments
 4. Provides post-deployment instructions
 
-### Method 2: Bash Script (Linux/Mac/WSL)
+### Method 3: Bash Script (Linux/Mac/WSL)
 
 ```bash
 # Login to Azure
@@ -131,7 +142,7 @@ chmod +x Scripts/deploy-logicapp.sh
   -s 15
 ```
 
-### Method 3: Manual Azure CLI
+### Method 4: Manual Azure CLI
 
 ```bash
 # Create resource group (if needed)
@@ -157,17 +168,6 @@ az deployment group create \
 cd FunctionApp
 func azure functionapp publish <FUNCTION_APP_NAME> --python
 ```
-
-### Method 4: Azure Portal (Deploy to Azure Button)
-
-1. Click **Deploy to Azure** button in README
-2. Fill in the deployment form in Azure Portal
-3. Click **Review + create** → **Create**
-4. After deployment, manually deploy Function App code:
-   ```bash
-   cd FunctionApp
-   func azure functionapp publish <FUNCTION_APP_NAME> --python
-   ```
 
 ---
 
