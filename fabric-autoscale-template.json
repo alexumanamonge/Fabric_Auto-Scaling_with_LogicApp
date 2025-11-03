@@ -1,0 +1,198 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": {
+      "type": "string",
+      "defaultValue": "FabricAutoScaleLogicApp"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "subscriptionId": {
+      "type": "string"
+    },
+    "resourceGroup": {
+      "type": "string"
+    },
+    "fabricCapacityName": {
+      "type": "string"
+    },
+    "notificationEmail": {
+      "type": "string"
+    },
+    "teamsChannelId": {
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "actions": {
+            "Initialize_LastScaleTime": {
+              "type": "InitializeVariable",
+              "inputs": {
+                "variables": [
+                  {
+                    "name": "LastScaleTime",
+                    "type": "String",
+                    "value": "@utcNow()"
+                  }
+                ]
+              }
+            },
+            "Check_CU_Usage": {
+              "type": "Http",
+              "inputs": {
+                "method": "GET",
+                "uri": "https://api.fabric.microsoft.com/v1/capacities/@{parameters('fabricCapacityName')}/metrics",
+                "headers": {
+                  "Authorization": "Bearer @{connection.oauth.token}"
+                }
+              },
+              "runAfter": {
+                "Initialize_LastScaleTime": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Check_CoolDown": {
+              "type": "If",
+              "expression": "@greaterOrEquals(utcNow(), addMinutes(variables('LastScaleTime'), 30))",
+              "actions": {
+                "Condition_Scale": {
+                  "type": "If",
+                  "expression": "@greater(body('Check_CU_Usage')?['cuUsagePercentage'], 80)",
+                  "actions": {
+                    "Scale_Up": {
+                      "type": "Http",
+                      "inputs": {
+                        "method": "PATCH",
+                        "uri": "https://management.azure.com/subscriptions/@{parameters('subscriptionId')}/resourceGroups/@{parameters('resourceGroup')}/providers/Microsoft.Fabric/capacities/@{parameters('fabricCapacityName')}?api-version=2023-11-01",
+                        "headers": {
+                          "Content-Type": "application/json",
+                          "Authorization": "Bearer @{connection.oauth.token}"
+                        },
+                        "body": {
+                          "sku": {
+                            "name": "F128"
+                          }
+                        }
+                      }
+                    },
+                    "Notify_Email_Up": {
+                      "type": "ApiConnection",
+                      "inputs": {
+                        "method": "POST",
+                        "host": {
+                          "connection": {
+                            "name": "@parameters('$connections')['office365']['connectionId']"
+                          }
+                        },
+                        "path": "/v2/Mail",
+                        "body": {
+                          "To": "@parameters('notificationEmail')",
+                          "Subject": "Fabric Capacity Scaled Up",
+                          "Body": "Capacity @{parameters('fabricCapacityName')} scaled up to F128 due to CU usage > 80%."
+                        }
+                      }
+                    },
+                    "Notify_Teams_Up": {
+                      "type": "ApiConnection",
+                      "inputs": {
+                        "method": "POST",
+                        "host": {
+                          "connection": {
+                            "name": "@parameters('$connections')['teams']['connectionId']"
+                          }
+                        },
+                        "path": "/v3/conversations/@{parameters('teamsChannelId')}/messages",
+                        "body": {
+                          "text": "Fabric capacity scaled UP to F128 due to CU > 80%."
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Condition_ScaleDown": {
+                        "type": "If",
+                        "expression": "@less(body('Check_CU_Usage')?['cuUsagePercentage'], 40)",
+                        "actions": {
+                          "Scale_Down": {
+                            "type": "Http",
+                            "inputs": {
+                              "method": "PATCH",
+                              "uri": "https://management.azure.com/subscriptions/@{parameters('subscriptionId')}/resourceGroups/@{parameters('resourceGroup')}/providers/Microsoft.Fabric/capacities/@{parameters('fabricCapacityName')}?api-version=2023-11-01",
+                              "headers": {
+                                "Content-Type": "application/json",
+                                "Authorization": "Bearer @{connection.oauth.token}"
+                              },
+                              "body": {
+                                "sku": {
+                                  "name": "F64"
+                                }
+                              }
+                            }
+                          },
+                          "Notify_Email_Down": {
+                            "type": "ApiConnection",
+                            "inputs": {
+                              "method": "POST",
+                              "host": {
+                                "connection": {
+                                  "name": "@parameters('$connections')['office365']['connectionId']"
+                                }
+                              },
+                              "path": "/v2/Mail",
+                              "body": {
+                                "To": "@parameters('notificationEmail')",
+                                "Subject": "Fabric Capacity Scaled Down",
+                                "Body": "Capacity @{parameters('fabricCapacityName')} scaled down to F64 due to CU usage < 40%."
+                              }
+                            }
+                          },
+                          "Notify_Teams_Down": {
+                            "type": "ApiConnection",
+                            "inputs": {
+                              "method": "POST",
+                              "host": {
+                                "connection": {
+                                  "name": "@parameters('$connections')['teams']['connectionId']"
+                                }
+                              },
+                              "path": "/v3/conversations/@{parameters('teamsChannelId')}/messages",
+                              "body": {
+                                "text": "Fabric capacity scaled DOWN to F64 due to CU < 40%."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "triggers": {
+            "Recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Minute",
+                "interval": 5
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
