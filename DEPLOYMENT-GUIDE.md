@@ -247,6 +247,8 @@ az role assignment list \
 
 The Function App needs access to the Fabric workspace to query Capacity Metrics App.
 
+> **Note**: The Function App uses **managed identity authentication** for storage account access. The ARM template automatically assigns the required roles (Storage Blob Data Owner, Storage Queue Data Contributor, Storage Table Data Contributor), so no additional storage configuration is needed.
+
 **Get Principal ID**:
 ```bash
 FUNCTION_APP_PRINCIPAL_ID=$(az deployment group show \
@@ -338,6 +340,16 @@ Expected response:
 2. Set correct subscription: `az account set --subscription <SUB_ID>`
 3. Verify Function App exists: `az functionapp list --resource-group rg-fabric-autoscale`
 4. Try deploying via VS Code instead
+
+### Issue: Storage account access errors during deployment
+
+**Symptoms**: ARM deployment fails with "Creation of storage file share failed with: '(403) Forbidden'"
+
+**Solutions**:
+1. Template now uses **managed identity authentication** - no storage keys needed
+2. Verify no Azure policies are blocking role assignments
+3. Ensure `allowSharedKeyAccess` is not disabled by subscription policy
+4. If issue persists, delete partially created resources and redeploy
 
 ### Issue: Function returns "Failed to retrieve capacity metrics"
 

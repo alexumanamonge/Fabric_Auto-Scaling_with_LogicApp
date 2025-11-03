@@ -21,7 +21,7 @@ The architecture ensures that scaling only occurs when utilization thresholds ar
 
 - 📊 **Native Fabric Metrics Integration**: Queries official Fabric Capacity Metrics App via Power BI REST API
 
-- 🔐 **Secure Authentication**: Uses Managed Identity for all Azure resource access (no secrets to manage)This solution automatically scales your Microsoft Fabric capacity up or down based on sustained CU utilization patterns. It leverages a **Python Azure Function** to intelligently query the **Fabric Capacity Metrics App** for real-time usage data, and an **Azure Logic App** to orchestrate scaling actions with email notifications.
+- 🔐 **Secure Authentication**: Uses Managed Identity for all Azure resource access - storage, Power BI API, and Fabric capacity (no secrets or keys to manage)
 
 - 📧 **Rich Email Notifications**: Detailed alerts with utilization metrics and SKU changes
 
@@ -120,6 +120,9 @@ When scaling occurs, you receive an email with:
 
 **Issue**: Logic App fails with "Unauthorized"
 - **Solution**: Verify Logic App Managed Identity has Contributor role on Fabric capacity
+
+**Issue**: Storage account access errors during deployment
+- **Solution**: Template uses managed identity authentication - ensure no Azure policies are blocking role assignments
 
 **Issue**: No email notifications received
 - **Solution**: Check Office 365 connection is authorized and email address is correct
