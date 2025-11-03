@@ -8,7 +8,6 @@ Before testing, ensure:
 - [x] Logic App has been deployed successfully
 - [x] Office 365 API connection is authorized
 - [x] Managed Identity has Contributor role on Fabric capacity
-- [x] Teams webhook URL is valid
 - [x] Logic App is enabled (not disabled)
 
 ## Test 1: Manual Logic App Trigger
@@ -144,37 +143,36 @@ Verify email notifications are sent when scaling occurs.
 
 ---
 
-## Test 4: Teams Notification Test
+## Test 4: Email Notification Test
 
 ### Purpose
-Verify Teams notifications are posted when scaling occurs.
+Verify email notifications are sent when scaling occurs.
 
 ### Steps
 
 1. **Trigger a scaling event** (see Test 3)
 
-2. **Check the Teams channel**
-   - Navigate to the Teams channel configured with the webhook
-   - Look for a message card with:
-     - Title: "⬆️ Fabric Capacity Scaled UP" or "⬇️ Fabric Capacity Scaled DOWN"
-     - Facts showing capacity details
+2. **Check your email inbox**
+   - Check the email address configured during deployment
+   - Look for an email with subject containing "Fabric Capacity Scaled"
+   - Verify the email contains:
+     - Scaling direction (UP or DOWN)
+     - Capacity name
+     - Old and new SKUs
+     - Timestamp
 
 ### Expected Results
-- Adaptive card message appears in Teams
-- Contains capacity name, SKUs, and timestamp
-- Card is formatted with appropriate colors (orange for scale up, blue for scale down)
+- Email is received at the configured address
+- Contains accurate capacity details
+- Formatted properly with all relevant information
 
 ### Troubleshooting
-- **No Teams message**:
-  - Test webhook manually:
-    ```bash
-    curl -H "Content-Type: application/json" \
-         -d '{"text": "Test message from Fabric Auto-Scale"}' \
-         YOUR_WEBHOOK_URL
-    ```
-  - Check if webhook is still active in Teams
-  - Verify webhook URL in Logic App parameters
-  - Check Logic App run history for HTTP action errors
+- **No email received**:
+  - Check spam/junk folder
+  - Verify the email address is correct in deployment parameters
+  - Ensure Office 365 connection is authorized (see DEPLOYMENT-GUIDE.md Step 3.1)
+  - Check Logic App run history for email action errors
+  - Verify your Office 365 account has permission to send emails
 
 ---
 
@@ -415,7 +413,6 @@ After testing, verify:
 - [ ] Metrics are collected correctly
 - [ ] Scaling operations work (tested or verified capable)
 - [ ] Email notifications are received
-- [ ] Teams notifications are posted
 - [ ] Managed Identity authentication works
 - [ ] Error handling is appropriate
 - [ ] Performance is acceptable
@@ -445,7 +442,7 @@ Set up regular checks:
 
 ### Daily
 - Review Logic App Runs history for failures
-- Check email/Teams for unexpected scaling events
+- Check email for unexpected scaling events
 
 ### Weekly
 - Review scaling patterns
@@ -478,7 +475,7 @@ Document your test results:
 - Status: ✅ PASS / ❌ FAIL
 - Notes:
 
-### Test 4: Teams Notifications
+### Test 4: Email Notifications
 - Status: ✅ PASS / ❌ FAIL
 - Notes:
 

@@ -24,12 +24,6 @@
     "notificationEmail": {
       "type": "string"
     },
-    "teamsWebhookUrl": {
-      "type": "string",
-      "metadata": {
-        "description": "Teams incoming webhook URL for notifications"
-      }
-    },
     "scaleUpThreshold": {
       "type": "int",
       "defaultValue": 80,
@@ -217,50 +211,6 @@
                       "Succeeded"
                     ]
                   }
-                },
-                "Notify_Teams_Scale_Up": {
-                  "type": "Http",
-                  "inputs": {
-                    "method": "POST",
-                    "uri": "@parameters('teamsWebhookUrl')",
-                    "headers": {
-                      "Content-Type": "application/json"
-                    },
-                    "body": {
-                      "@type": "MessageCard",
-                      "@context": "https://schema.org/extensions",
-                      "summary": "Fabric Capacity Scaled Up",
-                      "themeColor": "FFA500",
-                      "title": "⬆️ Fabric Capacity Scaled UP",
-                      "sections": [
-                        {
-                          "facts": [
-                            {
-                              "name": "Capacity:",
-                              "value": "@{parameters('fabricCapacityName')}"
-                            },
-                            {
-                              "name": "New SKU:",
-                              "value": "@{parameters('scaleUpSku')}"
-                            },
-                            {
-                              "name": "Previous SKU:",
-                              "value": "@{body('Parse_Capacity_Info')?['sku']?['name']}"
-                            },
-                            {
-                              "name": "Time:",
-                              "value": "@{utcNow()}"
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  },
-                  "runAfter": {
-                    "Send_Email_Scale_Up": [
-                      "Succeeded"
-                    ]
-                  }
                 }
               },
               "else": {
@@ -301,10 +251,6 @@
             },
             "notificationEmail": {
               "defaultValue": "[parameters('notificationEmail')]",
-              "type": "String"
-            },
-            "teamsWebhookUrl": {
-              "defaultValue": "[parameters('teamsWebhookUrl')]",
               "type": "String"
             },
             "scaleUpSku": {

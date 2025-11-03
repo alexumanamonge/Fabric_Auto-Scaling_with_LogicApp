@@ -3,13 +3,12 @@
 
 # Function to display usage
 usage() {
-    echo "Usage: $0 -g RESOURCE_GROUP -c CAPACITY_NAME -e EMAIL -w TEAMS_WEBHOOK_URL [-l LOCATION] [-n LOGIC_APP_NAME]"
+    echo "Usage: $0 -g RESOURCE_GROUP -c CAPACITY_NAME -e EMAIL [-l LOCATION] [-n LOGIC_APP_NAME]"
     echo ""
     echo "Required arguments:"
     echo "  -g    Resource group name"
     echo "  -c    Fabric capacity name"
     echo "  -e    Notification email address"
-    echo "  -w    Teams incoming webhook URL"
     echo ""
     echo "Optional arguments:"
     echo "  -l    Azure region (default: eastus)"
@@ -28,12 +27,11 @@ SCALE_UP_THRESHOLD=80
 SCALE_DOWN_THRESHOLD=40
 
 # Parse arguments
-while getopts "g:c:e:w:l:n:u:d:h" opt; do
+while getopts "g:c:e:l:n:u:d:h" opt; do
     case $opt in
         g) RESOURCE_GROUP="$OPTARG" ;;
         c) CAPACITY_NAME="$OPTARG" ;;
         e) EMAIL="$OPTARG" ;;
-        w) TEAMS_WEBHOOK_URL="$OPTARG" ;;
         l) LOCATION="$OPTARG" ;;
         n) LOGIC_APP_NAME="$OPTARG" ;;
         u) SCALE_UP_SKU="$OPTARG" ;;
@@ -44,7 +42,7 @@ while getopts "g:c:e:w:l:n:u:d:h" opt; do
 done
 
 # Validate required arguments
-if [ -z "$RESOURCE_GROUP" ] || [ -z "$CAPACITY_NAME" ] || [ -z "$EMAIL" ] || [ -z "$TEAMS_WEBHOOK_URL" ]; then
+if [ -z "$RESOURCE_GROUP" ] || [ -z "$CAPACITY_NAME" ] || [ -z "$EMAIL" ]; then
     echo "Error: Missing required arguments"
     usage
 fi
@@ -71,7 +69,6 @@ az deployment group create \
     location="$LOCATION" \
     fabricCapacityName="$CAPACITY_NAME" \
     notificationEmail="$EMAIL" \
-    teamsWebhookUrl="$TEAMS_WEBHOOK_URL" \
     scaleUpSku="$SCALE_UP_SKU" \
     scaleDownSku="$SCALE_DOWN_SKU" \
     scaleUpThreshold=$SCALE_UP_THRESHOLD \

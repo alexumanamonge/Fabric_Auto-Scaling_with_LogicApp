@@ -7,7 +7,6 @@ This solution automates scaling Microsoft Fabric capacity based on overload metr
 - ✅ **Automated Scaling**: Scale up (e.g., F64 → F128) when capacity is overloaded, scale down when underutilized
 - ✅ **Managed Identity Authentication**: Secure authentication using Azure Managed Identity (no secrets to manage)
 - ✅ **Email Notifications**: Receive email alerts via Office 365 when scaling events occur
-- ✅ **Teams Notifications**: Get notifications in Microsoft Teams channels via incoming webhooks
 - ✅ **Configurable Thresholds**: Customize scale-up and scale-down SKUs via ARM template parameters
 - ✅ **Azure Monitor Integration**: Uses native Azure Monitor metrics for Fabric capacity
 - ✅ **Automated Deployment**: Deploy via Azure CLI using PowerShell or Bash scripts
@@ -17,7 +16,6 @@ The solution uses:
 - **Azure Logic App** with System-assigned Managed Identity
 - **Azure Monitor Metrics** to track Fabric capacity overload
 - **Office 365 Connector** for email notifications
-- **Teams Incoming Webhook** for Teams notifications
 - **ARM Template** for infrastructure-as-code deployment
 
 ## Prerequisites
@@ -26,7 +24,6 @@ Before deploying, ensure you have:
 2. ✅ Azure CLI installed ([Download](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli))
 3. ✅ Contributor or Owner role on the resource group
 4. ✅ Office 365 account for email notifications
-5. ✅ Teams incoming webhook URL ([Create one](https://docs.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook))
 
 ## Deployment Steps
 
@@ -41,7 +38,6 @@ cd Fabric_Auto-Scaling_with_LogicApp
   -ResourceGroup "myResourceGroup" `
   -CapacityName "myFabricCapacity" `
   -Email "admin@company.com" `
-  -TeamsWebhookUrl "https://outlook.office.com/webhook/..." `
   -Location "eastus" `
   -ScaleUpSku "F128" `
   -ScaleDownSku "F64"
@@ -61,7 +57,6 @@ chmod +x Scripts/deploy-logicapp.sh
   -g "myResourceGroup" \
   -c "myFabricCapacity" \
   -e "admin@company.com" \
-  -w "https://outlook.office.com/webhook/..." \
   -l "eastus" \
   -u "F128" \
   -d "F64"
@@ -75,7 +70,6 @@ az deployment group create \
   --parameters \
     fabricCapacityName=myFabricCapacity \
     notificationEmail=admin@company.com \
-    teamsWebhookUrl="https://outlook.office.com/webhook/..." \
     scaleUpSku=F128 \
     scaleDownSku=F64
 ```
@@ -110,13 +104,7 @@ az role assignment create \
   --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/myResourceGroup/providers/Microsoft.Fabric/capacities/myFabricCapacity
 ```
 
-### 3. Create Teams Incoming Webhook
-1. In Microsoft Teams, navigate to your channel
-2. Click "..." → "Connectors" → "Incoming Webhook"
-3. Configure and create the webhook
-4. Copy the webhook URL for deployment
-
-### 4. Enable the Logic App
+### 3. Enable the Logic App
 1. Go to Azure Portal → Logic App
 2. Click "Enable" to start the recurrence trigger (runs every 5 minutes)
 
@@ -128,7 +116,6 @@ az role assignment create \
 | `location` | Azure region | Resource group location | No |
 | `fabricCapacityName` | Name of the Fabric capacity | - | Yes |
 | `notificationEmail` | Email for notifications | - | Yes |
-| `teamsWebhookUrl` | Teams webhook URL | - | Yes |
 | `scaleUpSku` | SKU to scale up to | F128 | No |
 | `scaleDownSku` | SKU to scale down to | F64 | No |
 
@@ -138,7 +125,6 @@ az role assignment create \
 Edit the ARM template (`Templates/fabric-autoscale-template.json`) to:
 - Change the recurrence interval (currently 5 minutes)
 - Adjust SKU sizes for scale-up/down
-- Add additional notification channels
 - Implement custom scaling logic
 
 ### Add Azure Monitor Alerts
@@ -149,11 +135,11 @@ You can also configure Azure Monitor alerts for additional scenarios. See `Examp
 2. **Check Metrics**: Queries Azure Monitor for Fabric capacity overload metric
 3. **Evaluate**: Determines if scaling is needed based on metrics
 4. **Scale**: Calls Azure Management API to update capacity SKU
-5. **Notify**: Sends email and Teams notifications about the scaling event
+5. **Notify**: Sends email notification about the scaling event
 
 ## Monitoring
 - View Logic App run history in Azure Portal
-- Check email/Teams for scaling notifications
+- Check email for scaling notifications
 - Monitor Fabric capacity metrics in Azure Monitor
 - Review Logic App diagnostic logs
 
@@ -165,8 +151,8 @@ You can also configure Azure Monitor alerts for additional scenarios. See `Examp
 
 ### No notifications received
 - Verify the email address is correct
-- Ensure Teams webhook URL is valid and active
 - Check Logic App run history for action failures
+- Ensure Office 365 connection is authorized
 
 ### Scaling not occurring
 - Verify metrics are being collected for the Fabric capacity
@@ -176,7 +162,6 @@ You can also configure Azure Monitor alerts for additional scenarios. See `Examp
 ## Security Considerations
 - ✅ Uses Managed Identity (no credentials stored)
 - ✅ Office 365 connection uses OAuth authentication
-- ✅ Teams webhook URL should be kept secure
 - ✅ RBAC permissions follow least-privilege principle
 
 ## Cost Considerations

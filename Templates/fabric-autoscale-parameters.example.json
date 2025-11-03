@@ -14,9 +14,6 @@
     "notificationEmail": {
       "value": "admin@yourdomain.com"
     },
-    "teamsWebhookUrl": {
-      "value": "https://outlook.office.com/webhook/YOUR_WEBHOOK_URL"
-    },
     "scaleUpSku": {
       "value": "F128"
     },

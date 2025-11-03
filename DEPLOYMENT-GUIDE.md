@@ -4,7 +4,6 @@
 - [ ] Azure CLI installed and authenticated
 - [ ] Resource group created
 - [ ] Fabric capacity deployed
-- [ ] Teams webhook URL obtained
 - [ ] Email address for notifications ready
 
 ## Step-by-Step Deployment
@@ -33,25 +32,7 @@ az login
 az account set --subscription "Your-Subscription-Name-or-ID"
 ```
 
-### 2. Create Teams Incoming Webhook
-
-1. Open Microsoft Teams and navigate to the channel where you want notifications
-2. Click the **...** next to the channel name
-3. Select **Connectors** (or **Workflows** in newer Teams versions)
-4. Search for **Incoming Webhook**
-5. Click **Configure** or **Add**
-6. Provide a name (e.g., "Fabric Auto-Scale Notifications")
-7. Optionally upload an icon
-8. Click **Create**
-9. **Copy the webhook URL** - you'll need this for deployment
-10. Click **Done**
-
-Example webhook URL format:
-```
-https://outlook.office.com/webhook/abc123...@def456.../IncomingWebhook/xyz789.../uvw012...
-```
-
-### 3. Deploy the Logic App
+### 2. Deploy the Logic App
 
 #### Option A: PowerShell (Recommended for Windows)
 ```powershell
@@ -61,7 +42,6 @@ cd Fabric_Auto-Scaling_with_LogicApp
   -ResourceGroup "rg-fabric-production" `
   -CapacityName "fabriccapacity01" `
   -Email "admin@contoso.com" `
-  -TeamsWebhookUrl "https://outlook.office.com/webhook/..." `
   -Location "eastus" `
   -LogicAppName "FabricAutoScale" `
   -ScaleUpSku "F128" `
@@ -76,7 +56,6 @@ cd Fabric_Auto-Scaling_with_LogicApp
   -g "rg-fabric-production" \
   -c "fabriccapacity01" \
   -e "admin@contoso.com" \
-  -w "https://outlook.office.com/webhook/..." \
   -l "eastus" \
   -n "FabricAutoScale" \
   -u "F128" \
@@ -85,11 +64,11 @@ cd Fabric_Auto-Scaling_with_LogicApp
 
 **Deployment typically takes 2-3 minutes.**
 
-### 4. Post-Deployment Configuration
+### 3. Post-Deployment Configuration
 
 After deployment completes, you'll see the Managed Identity Principal ID in the output. **Copy this ID** for the next steps.
 
-#### Step 4.1: Authorize Office 365 Connection
+#### Step 3.1: Authorize Office 365 Connection
 
 1. Go to [Azure Portal](https://portal.azure.com)
 2. Navigate to your resource group
@@ -100,7 +79,7 @@ After deployment completes, you'll see the Managed Identity Principal ID in the 
 7. Sign in with your Office 365 account when prompted
 8. Click **Save** at the top
 
-#### Step 4.2: Grant Managed Identity Permissions
+#### Step 3.2: Grant Managed Identity Permissions
 
 The Logic App needs permission to modify the Fabric capacity. Run these commands:
 
@@ -171,8 +150,7 @@ The Logic App is deployed but may not be running automatically:
 
 #### Check for Notifications
 
-- **Email**: Check your inbox for a test email (if scaling occurred)
-- **Teams**: Check your Teams channel for a notification (if scaling occurred)
+- **Email**: Check your inbox for a notification email (if scaling occurred)
 
 #### Monitor Runs
 
@@ -240,15 +218,13 @@ az deployment group validate \
 3. Review the Logic App run history for specific error messages
 4. Ensure the capacity is not already at the target SKU
 
-### Issue: "No Teams notifications received"
+### Issue: "No email notifications received"
 **Solution:**
-1. Verify the webhook URL is correct and active
-2. Test the webhook manually using curl:
-```bash
-curl -H "Content-Type: application/json" -d '{"text": "Test message"}' YOUR_WEBHOOK_URL
-```
-3. Check if the webhook was deleted or disabled in Teams
-4. Review the Logic App run history for the HTTP action status
+1. Verify the email address is correct
+2. Check your spam/junk folder
+3. Ensure the Office 365 connection is authorized (see Step 3.1)
+4. Review the Logic App run history for the email action status
+5. Check if the email action failed with authentication errors
 
 ### Issue: "Principal ID not found after deployment"
 **Solution:**

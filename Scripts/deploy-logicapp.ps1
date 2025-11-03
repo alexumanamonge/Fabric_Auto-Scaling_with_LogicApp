@@ -8,9 +8,6 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$Email,
     
-    [Parameter(Mandatory=$true)]
-    [string]$TeamsWebhookUrl,
-    
     [string]$Location = "eastus",
     [string]$LogicAppName = "FabricAutoScaleLogicApp",
     [string]$ScaleUpSku = "F128",
@@ -37,7 +34,6 @@ az deployment group create `
     location=$Location `
     fabricCapacityName=$CapacityName `
     notificationEmail=$Email `
-    teamsWebhookUrl=$TeamsWebhookUrl `
     scaleUpSku=$ScaleUpSku `
     scaleDownSku=$ScaleDownSku `
     scaleUpThreshold=$ScaleUpThreshold `

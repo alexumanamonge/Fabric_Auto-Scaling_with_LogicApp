@@ -6,7 +6,27 @@ This repository has been thoroughly reviewed and updated to be production-ready 
 
 ---
 
-## 📋 What Was Fixed
+## � Latest Update: Email-Only Notifications
+
+**Date**: Latest commit  
+**Change**: Simplified notification architecture - removed Teams webhook integration, keeping only email notifications.
+
+**What Changed**:
+- ❌ Removed `teamsWebhookUrl` parameter from ARM template
+- ❌ Removed Teams notification action from Logic App workflow
+- ❌ Removed `-TeamsWebhookUrl`/`-w` parameter from deployment scripts
+- ✅ Retained email notifications via Office 365 connection
+- ✅ Updated all documentation to reflect email-only approach
+
+**Benefits**:
+- Simpler deployment (one less parameter required)
+- Fewer dependencies (no Teams webhook management)
+- Easier maintenance
+- Email is sufficient for most notification scenarios
+
+---
+
+## �📋 What Was Fixed (Initial Production Readiness)
 
 ### 1. **JSON Template Errors** ✅
 - **Issue**: Invalid JSON format - missing required workflow definition parameters
@@ -19,12 +39,11 @@ This repository has been thoroughly reviewed and updated to be production-ready 
 - **Impact**: Secure, production-ready authentication without storing credentials
 
 ### 3. **Missing API Connection Resources** ✅
-- **Issue**: Template referenced Office 365 and Teams connections but didn't define them
+- **Issue**: Template referenced Office 365 connection but didn't define it
 - **Fixed**: 
   - Added Office 365 API Connection resource
-  - Replaced Teams API connection with Teams incoming webhook (more reliable)
   - Properly configured connection parameters
-- **Impact**: Notifications will work correctly after authorization
+- **Impact**: Email notifications will work correctly after authorization
 
 ### 4. **Deployment Script Issues** ✅
 - **Issue**: 
@@ -91,13 +110,11 @@ Fabric-AutoScale-LogicApp/
 - ✅ Managed Identity authentication (no secrets)
 - ✅ OAuth for Office 365 connection
 - ✅ RBAC-based access control
-- ✅ Webhook-based Teams notifications (no API connection needed)
 
 ### Functionality
 - ✅ Automated capacity monitoring via Azure Monitor
 - ✅ Configurable scale-up/down SKUs
 - ✅ Email notifications via Office 365
-- ✅ Teams notifications via incoming webhook
 - ✅ Real-time metric evaluation
 - ✅ 5-minute recurrence trigger
 
@@ -125,8 +142,7 @@ Before deploying, ensure you have:
 2. ✅ **Azure subscription** with active Fabric capacity
 3. ✅ **Contributor or Owner** role on resource group
 4. ✅ **Office 365 account** for email notifications
-5. ✅ **Teams webhook URL** created and ready
-6. ✅ **Fabric capacity name** and resource group identified
+5. ✅ **Fabric capacity name** and resource group identified
 
 ---
 
@@ -137,8 +153,7 @@ Before deploying, ensure you have:
 .\Scripts\deploy-logicapp.ps1 `
   -ResourceGroup "your-rg" `
   -CapacityName "your-capacity" `
-  -Email "admin@domain.com" `
-  -TeamsWebhookUrl "https://outlook.office.com/webhook/..."
+  -Email "admin@domain.com"
 ```
 
 ### Bash (Linux/Mac)
@@ -146,8 +161,7 @@ Before deploying, ensure you have:
 ./Scripts/deploy-logicapp.sh \
   -g "your-rg" \
   -c "your-capacity" \
-  -e "admin@domain.com" \
-  -w "https://outlook.office.com/webhook/..."
+  -e "admin@domain.com"
 ```
 
 ### Post-Deployment (Required)
@@ -166,7 +180,6 @@ Follow the **TESTING-GUIDE.md** to validate:
 - ✅ Manual trigger execution
 - ✅ Metrics collection
 - ✅ Email notifications
-- ✅ Teams notifications
 - ✅ Managed Identity authentication
 - ✅ Scaling operations (optional, impacts production)
 - ✅ Recurrence trigger
@@ -182,7 +195,6 @@ Follow the **TESTING-GUIDE.md** to validate:
 |-----------|-------------|---------|
 | `fabricCapacityName` | Fabric capacity to monitor | `fabriccapacity01` |
 | `notificationEmail` | Email for notifications | `admin@contoso.com` |
-| `teamsWebhookUrl` | Teams webhook URL | `https://outlook.office.com/webhook/...` |
 
 ### Optional Parameters
 | Parameter | Description | Default |
