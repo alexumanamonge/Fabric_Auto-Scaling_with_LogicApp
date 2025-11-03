@@ -11,6 +11,9 @@
     "fabricCapacityName": {
       "value": "YOUR_FABRIC_CAPACITY_NAME"
     },
+    "fabricWorkspaceId": {
+      "value": "YOUR_FABRIC_WORKSPACE_ID"
+    },
     "notificationEmail": {
       "value": "admin@yourdomain.com"
     },
