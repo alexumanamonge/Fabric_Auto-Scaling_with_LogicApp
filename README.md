@@ -37,11 +37,11 @@ The architecture ensures that scaling only occurs when utilization thresholds ar
 
 Click the **Deploy to Azure** button above to quickly deploy the infrastructure to your Azure subscription.---
 
-### Full Instructions### Architecture Flow
+### Full Instructions
 
 For complete deployment instructions, prerequisites, and post-deployment configuration, see:
 
-📖 **[Deployment Guide](DEPLOYMENT-GUIDE.md)**```
+📖 **[Deployment Guide](DEPLOYMENT-GUIDE.md)**
 
 ---
 
@@ -87,6 +87,17 @@ When scaling occurs, you receive an email with:
 - Timestamp
 
 ---
+## Cost Estimation
+
+### Azure Resources
+- **Function App (Consumption Plan)**: ~$0.20/month (low execution frequency)
+- **Logic App (Consumption)**: ~$0.30/month (288 runs/day)
+- **Storage Account (LRS)**: ~$0.50/month
+- **Application Insights**: ~$2.00/month (basic logging)
+
+**Total**: ~$3.00/month (may vary based on usage)
+
+---
 
 ## Monitoring and Troubleshooting
 
@@ -110,18 +121,6 @@ When scaling occurs, you receive an email with:
 
 **Issue**: No email notifications received
 - **Solution**: Check Office 365 connection is authorized and email address is correct
-
----
-
-## Cost Estimation
-
-### Azure Resources
-- **Function App (Consumption Plan)**: ~$0.20/month (low execution frequency)
-- **Logic App (Consumption)**: ~$0.30/month (288 runs/day)
-- **Storage Account (LRS)**: ~$0.50/month
-- **Application Insights**: ~$2.00/month (basic logging)
-
-**Total**: ~$3.00/month (may vary based on usage)
 
 ---
 
