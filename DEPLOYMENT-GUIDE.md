@@ -179,26 +179,67 @@ After deployment completes, you **must** perform these steps:
 
 The ARM template creates the Function App infrastructure, but the Python code must be deployed separately.
 
-**Option A: Using Azure Functions Core Tools**
-```bash
-cd FunctionApp
-func azure functionapp publish func-fabricscale-xxxxx --python
+> **Important**: The Function App is configured to support zip deployment via Kudu API, which is the most reliable method.
+
+**Option A: Using Deployment Script (Recommended)**
+
+We provide scripts that handle the deployment automatically:
+
+**PowerShell:**
+```powershell
+.\Scripts\deploy-function-code.ps1 `
+  -ResourceGroup "rg-fabric-autoscale" `
+  -FunctionAppName "func-fabricscale-xxxxx"
 ```
 
-**Option B: Using VS Code**
+**Bash:**
+```bash
+./Scripts/deploy-function-code.sh \
+  -g rg-fabric-autoscale \
+  -n func-fabricscale-xxxxx
+```
+
+**Option B: Using Kudu Web UI (No CLI Required)**
+
+1. Get your Function App name from the deployment output
+2. Open browser: `https://YOUR-FUNCTION-APP-NAME.scm.azurewebsites.net`
+3. Click **Tools** → **Zip Push Deploy**
+4. Create a zip file of the `FunctionApp` folder contents
+5. Drag and drop the zip file to the deployment area
+6. Wait for "Deployment successful" message
+
+**Option C: Using Azure CLI (From Cloud Shell)**
+
+```bash
+# Navigate to FunctionApp directory
+cd FunctionApp
+
+# Create zip package
+zip -r ../functionapp.zip .
+
+# Get publishing credentials and deploy via Kudu API
+RESOURCE_GROUP="rg-fabric-autoscale"
+FUNCTION_APP_NAME="func-fabricscale-xxxxx"
+
+CREDS=$(az functionapp deployment list-publishing-credentials \
+  --resource-group $RESOURCE_GROUP \
+  --name $FUNCTION_APP_NAME \
+  --query "{username:publishingUserName, password:publishingPassword}" -o json)
+
+USERNAME=$(echo $CREDS | jq -r .username)
+PASSWORD=$(echo $CREDS | jq -r .password)
+
+curl -X POST \
+  -u "$USERNAME:$PASSWORD" \
+  --data-binary @../functionapp.zip \
+  https://$FUNCTION_APP_NAME.scm.azurewebsites.net/api/zipdeploy
+```
+
+**Option D: Using VS Code**
 1. Install **Azure Functions extension** for VS Code
 2. Open `FunctionApp` folder
 3. Click **Azure** icon → **Function App** → **Deploy to Function App**
 4. Select your Function App
-
-**Option C: Using Azure CLI**
-```bash
-cd FunctionApp
-az functionapp deployment source config-zip \
-  --resource-group rg-fabric-autoscale \
-  --name func-fabricscale-xxxxx \
-  --src FunctionApp.zip
-```
 
 **Verify deployment**:
 - Go to Azure Portal → Function App → Functions
