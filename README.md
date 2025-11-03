@@ -35,7 +35,7 @@ The architecture ensures that scaling only occurs when utilization thresholds ar
 
 ### Quick Deploy
 
-Click the **Deploy to Azure** button above to quickly deploy the infrastructure to your Azure subscription.---
+Click the [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexumanamonge%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json) to quickly deploy the infrastructure to your Azure subscription.---
 
 ### Full Instructions
 
