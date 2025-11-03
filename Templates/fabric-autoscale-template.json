@@ -122,16 +122,10 @@
             "Get_Capacity_Metrics": {
               "type": "Http",
               "inputs": {
-                "method": "POST",
-                "uri": "https://management.azure.com/subscriptions/@{parameters('subscriptionId')}/resourceGroups/@{parameters('resourceGroup')}/providers/Microsoft.Fabric/capacities/@{parameters('fabricCapacityName')}/providers/microsoft.insights/metrics?api-version=2018-01-01",
+                "method": "GET",
+                "uri": "https://management.azure.com/subscriptions/@{parameters('subscriptionId')}/resourceGroups/@{parameters('resourceGroup')}/providers/Microsoft.Fabric/capacities/@{parameters('fabricCapacityName')}/providers/microsoft.insights/metrics?api-version=2018-01-01&timespan=PT5M&interval=PT1M&metricnames=Overload&aggregation=Average",
                 "authentication": {
                   "type": "ManagedServiceIdentity"
-                },
-                "body": {
-                  "timespan": "PT5M",
-                  "interval": "PT1M",
-                  "metricnames": "Overload",
-                  "aggregation": "Average"
                 }
               },
               "runAfter": {
