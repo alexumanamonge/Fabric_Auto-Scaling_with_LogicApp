@@ -44,10 +44,22 @@ This solution automatically scales your Fabric capacity up or down based on sust
 - Active Fabric capacity (F2, F4, F8, F16, F32, F64, F128, etc.)
 - Know the capacity name, resource group, and subscription ID
 
-### 2. Capacity Metrics App
-- Install the **Microsoft Fabric Capacity Metrics** app in a Power BI workspace
-- Note the workspace ID (found in workspace URL: `https://app.powerbi.com/groups/{workspace-id}/...`)
-- Ensure the app has data (it may take 24-48 hours after installation for metrics to appear)
+### 2. Capacity Metrics App Installation
+**⚠️ This is REQUIRED before deployment:**
+
+1. Go to your Power BI workspace (or create a new one)
+2. Install the **Microsoft Fabric Capacity Metrics** app:
+   - Click **+ New** > **More options**
+   - Search for "Microsoft Fabric Capacity Metrics" in AppSource
+   - Click **Get it now** and follow installation
+3. Configure it to monitor your target Fabric capacity
+4. **Note the Workspace ID**: Found in URL: `https://app.powerbi.com/groups/{workspace-id}/...`
+5. **Get the Dataset ID**:
+   - In the workspace, find the "Microsoft Fabric Capacity Metrics" dataset
+   - Click ⋯ (More options) > **Settings**
+   - Look at the browser URL: `https://app.powerbi.com/groups/{workspaceId}/settings/datasets/{datasetId}`
+   - **Copy the `datasetId`** - you'll need this for deployment
+6. **Wait for data**: Metrics may take 24-48 hours to appear after installation
 
 ### 3. Azure Subscription
 - Contributor access to create resources (Logic App, Storage, App Insights)
@@ -55,7 +67,7 @@ This solution automatically scales your Fabric capacity up or down based on sust
 
 ### 4. Office 365 Account
 - Email address for receiving scaling notifications
-- Ability to authorize the Office 365 connector
+- Ability to authorize the Office 365 connector (post-deployment)
 
 ## 🚀 Deployment
 
@@ -78,6 +90,7 @@ cd Fabric_Auto-Scaling_with_LogicApp/Scripts
     -FabricCapacityName "my-fabric-capacity" `
     -FabricResourceGroup "rg-fabric-prod" `
     -FabricWorkspaceId "12345678-1234-1234-1234-123456789abc" `
+    -CapacityMetricsDatasetId "87654321-4321-4321-4321-210987654321" `
     -EmailRecipient "admin@company.com" `
     -ScaleUpThreshold 80 `
     -ScaleDownThreshold 30 `
@@ -106,6 +119,7 @@ az deployment group create \
     fabricCapacityName="my-fabric-capacity" \
     fabricResourceGroup="rg-fabric-prod" \
     fabricWorkspaceId="12345678-1234-1234-1234-123456789abc" \
+    capacityMetricsDatasetId="87654321-4321-4321-4321-210987654321" \
     emailRecipient="admin@company.com" \
     scaleUpSku="F128" \
     scaleDownSku="F64" \
@@ -122,36 +136,58 @@ After deployment completes, **you must complete these 3 steps**:
 ### Step 1: Authorize Office 365 Connection
 
 1. Go to **Azure Portal** > Resource Group (where you deployed)
-2. Find the **Office 365** connection resource (named `office365-*`)
+2. Find the **API Connection** resource (named `office365-*`)
 3. Click **Edit API connection**
 4. Click **Authorize** and sign in with your Office 365 account
 5. Click **Save**
 
 ### Step 2: Assign Fabric Capacity Permissions
 
-The Logic App needs Contributor access to scale the Fabric capacity:
+The Logic App needs **Contributor** access to scale the Fabric capacity:
 
+**Option A: Azure Portal**
+1. Go to **Azure Portal** > Your Fabric Capacity resource
+2. Click **Access control (IAM)** > **+ Add** > **Add role assignment**
+3. Select **Contributor** role
+4. Click **Next**
+5. Click **+ Select members**
+6. Search for your Logic App name (e.g., `fabricautoscale-...`)
+7. Select it and click **Select**
+8. Click **Review + assign**
+
+**Option B: Azure CLI**
 ```bash
 # Get the Logic App's managed identity principal ID from deployment output
 PRINCIPAL_ID="<from-deployment-output>"
 
-# Assign Contributor role
+# Assign Contributor role to the Fabric capacity
 az role assignment create \
   --assignee $PRINCIPAL_ID \
   --role Contributor \
   --scope /subscriptions/<subscription-id>/resourceGroups/<fabric-rg>/providers/Microsoft.Fabric/capacities/<capacity-name>
 ```
 
-### Step 3: Grant Power BI API Permissions
+### Step 3: Grant Power BI Workspace Access
 
+The Logic App needs to query the Capacity Metrics App dataset:
+
+1. Go to **Power BI Service**: https://app.powerbi.com
+2. Navigate to your workspace (where Capacity Metrics App is installed)
+3. Click **Workspace settings** (gear icon) > **Manage access**
+4. Click **+ Add people or groups**
+5. Paste the **Logic App's Principal ID** (from deployment output)
+6. It will show as the Logic App name
+7. Assign at least **Viewer** role
+8. Click **Add**
+
+**Alternative: Azure AD Enterprise Application permissions (Optional)**
+
+If your organization requires explicit API permissions:
 1. Go to **Azure Portal** > **Azure Active Directory** > **Enterprise Applications**
-2. Search for the Logic App's **Principal ID** (from deployment output)
-3. Click on the application > **API permissions**
-4. Click **Add a permission** > **Power BI Service**
-5. Add these **Application permissions**:
-   - `Dataset.Read.All`
-   - `Workspace.Read.All`
-6. Click **Grant admin consent**
+2. Search for the Logic App's **Principal ID**
+3. Click **API permissions** > **Add a permission** > **Power BI Service**
+4. Add: `Dataset.Read.All`, `Workspace.Read.All` (Application permissions)
+5. Click **Grant admin consent**
 
 ## 📊 How It Works
 
@@ -202,7 +238,7 @@ ORDER BY 'Timepoint'[Datetime] DESC
 | `fabricCapacityName` | *Required* | Name of your Fabric capacity |
 | `fabricResourceGroup` | *Required* | Resource group containing the capacity |
 | `fabricWorkspaceId` | *Required* | Workspace ID where Capacity Metrics App is installed |
-| `capacityMetricsDatasetId` | CFafbeb4... | Dataset ID of Capacity Metrics App (find in workspace settings URL) |
+| `capacityMetricsDatasetId` | *Required* | Dataset ID of Capacity Metrics App - find in Power BI workspace > dataset settings > copy from URL |
 | `emailRecipient` | *Required* | Email for scaling notifications |
 | `scaleUpThreshold` | 80 | CPU % to trigger scale up (0-100) |
 | `scaleDownThreshold` | 30 | CPU % to trigger scale down (0-100) |

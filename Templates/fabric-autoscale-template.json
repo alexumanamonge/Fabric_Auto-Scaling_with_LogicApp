@@ -43,9 +43,8 @@
     },
     "capacityMetricsDatasetId": {
       "type": "string",
-      "defaultValue": "CFafbeb4-7a8b-43d7-a3d3-0a8f8c6b0e85",
       "metadata": {
-        "description": "Dataset ID of the Capacity Metrics App in your workspace. Find this in Power BI workspace settings URL."
+        "description": "Dataset ID of the Capacity Metrics App in your workspace. To find: Go to Power BI > Workspace > Dataset settings > Copy GUID from URL (format: 12345678-1234-1234-1234-123456789abc)"
       }
     },
     "scaleUpThreshold": {

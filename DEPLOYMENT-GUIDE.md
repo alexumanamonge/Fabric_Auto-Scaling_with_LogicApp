@@ -5,9 +5,23 @@
 ### Prerequisites Checklist
 - [ ] Microsoft Fabric capacity (know the name, resource group, subscription)
 - [ ] Power BI workspace with **Microsoft Fabric Capacity Metrics** app installed
-- [ ] Workspace ID (from URL: `https://app.powerbi.com/groups/{workspace-id}/...`)
+- [ ] **Workspace ID** (from URL: `https://app.powerbi.com/groups/{workspace-id}/...`)
+- [ ] **Dataset ID** for Capacity Metrics App (see below)
 - [ ] Azure subscription with Contributor access
 - [ ] Office 365 email account
+
+### ⚠️ How to Get the Dataset ID (REQUIRED)
+
+1. Go to **Power BI Service**: https://app.powerbi.com
+2. Navigate to the workspace where you installed the Capacity Metrics App
+3. Find the **"Microsoft Fabric Capacity Metrics"** dataset
+4. Click ⋯ (More options) > **Settings**
+5. Look at the browser URL - it contains the dataset ID:
+   ```
+   https://app.powerbi.com/groups/{workspaceId}/settings/datasets/{datasetId}
+   ```
+6. **Copy the `{datasetId}`** - it's a GUID like `87654321-4321-4321-4321-210987654321`
+7. You'll need this for the deployment command below
 
 ---
 
@@ -26,6 +40,7 @@ cd Fabric-AutoScale-LogicApp/Scripts
     -FabricCapacityName "my-fabric-capacity" `
     -FabricResourceGroup "rg-fabric-prod" `
     -FabricWorkspaceId "12345678-1234-1234-1234-123456789abc" `
+    -CapacityMetricsDatasetId "87654321-4321-4321-4321-210987654321" `
     -EmailRecipient "admin@company.com" `
     -Location "eastus"
 ```
@@ -49,6 +64,7 @@ az deployment group create \
     fabricCapacityName="my-fabric-capacity" \
     fabricResourceGroup="rg-fabric-prod" \
     fabricWorkspaceId="12345678-1234-1234-1234-123456789abc" \
+    capacityMetricsDatasetId="87654321-4321-4321-4321-210987654321" \
     emailRecipient="admin@company.com"
 ```
 
@@ -62,6 +78,7 @@ az deployment group create \
    - **Fabric Capacity Name**: Your capacity name
    - **Fabric Resource Group**: RG containing the capacity
    - **Fabric Workspace ID**: From Power BI workspace URL
+   - **Capacity Metrics Dataset ID**: The dataset GUID you copied earlier
    - **Email Recipient**: Your email
    - **Scale Up SKU**: F128 (or your choice)
    - **Scale Down SKU**: F64 (or your choice)
@@ -128,26 +145,38 @@ az role assignment create \
 
 **✅ Success indicator:** Command completes without errors.
 
-### 2.3 Grant Power BI API Permissions
+### 2.3 Grant Power BI Workspace Access
 
-**Why:** The Logic App needs to read capacity metrics from the Power BI dataset.
+**Why:** The Logic App needs to read capacity metrics from the Capacity Metrics App dataset.
 
-1. Go to **Azure Portal** > **Azure Active Directory**
-2. Click **Enterprise applications** (left menu)
-3. **Remove all filters** (click the X next to "Application type == Enterprise Applications")
-4. In the search box, paste the **Principal ID** from deployment output
-5. Click on the matching application
-6. Click **Permissions** (left menu under Security)
-7. Click **+ Add a permission**
-8. Click **APIs my organization uses**
-9. Search for **Power BI Service**
-10. Click **Application permissions** (NOT Delegated)
-11. Check these permissions:
-    - ✅ **Dataset.Read.All**
-    - ✅ **Workspace.Read.All**
-12. Click **Add permissions**
-13. Click **Grant admin consent for {your-tenant}**
-14. Confirm by clicking **Yes**
+**Primary Method: Workspace Access (Recommended)**
+
+1. Go to **Power BI Service**: https://app.powerbi.com
+2. Navigate to the workspace where you installed Capacity Metrics App
+3. Click the **Workspace settings** (gear icon)
+4. Click **Manage access**
+5. Click **+ Add people or groups**
+6. In the search box, paste the **Logic App's Principal ID** (from deployment output)
+7. The Logic App will appear (named `fabricautoscale-*`)
+8. Assign it the **Viewer** role (or Member if you prefer)
+9. Click **Add**
+
+**✅ Success indicator:** Logic App appears in the workspace members list.
+
+**Alternative Method: Enterprise Application Permissions (If Required by Organization)**
+
+If your organization requires explicit API permissions:
+
+1. Go to **Azure Portal** > **Azure Active Directory** > **Enterprise applications**
+2. **Remove all filters** (click the X next to "Application type == Enterprise Applications")
+3. Search for the **Principal ID** from deployment output
+4. Click on the matching application
+5. Click **Permissions** (under Security) > **+ Add a permission**
+6. Click **APIs my organization uses** > Search for **Power BI Service**
+7. Click **Application permissions** (NOT Delegated)
+8. Check: **Dataset.Read.All** and **Workspace.Read.All**
+9. Click **Add permissions**
+10. Click **Grant admin consent for {your-tenant}** > **Yes**
 
 **✅ Success indicator:** Permissions show "Granted for {your-tenant}" in green.
 
