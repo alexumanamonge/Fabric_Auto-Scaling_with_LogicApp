@@ -655,15 +655,14 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', parameters('storageAccountName'), 'default', 'deployments')]",
-        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'deploymentScriptIdentity')]",
-        "[resourceId('Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), 'deploymentScriptIdentity', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))]"
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'deploymentScriptIdentity')]"
       ],
       "properties": {
         "azPowerShellVersion": "9.0",
         "retentionInterval": "PT1H",
         "timeout": "PT10M",
         "cleanupPreference": "OnSuccess",
-        "scriptContent": "$packageUrl = 'https://github.com/alexumanamonge/Fabric_Auto-Scaling_with_LogicApp/raw/master/Releases/functionapp.zip'; $tempFile = New-TemporaryFile; Invoke-WebRequest -Uri $packageUrl -OutFile $tempFile -UseBasicParsing; $storageAccount = Get-AzStorageAccount -ResourceGroupName $env:RESOURCE_GROUP -Name $env:STORAGE_ACCOUNT; $ctx = $storageAccount.Context; Set-AzStorageBlobContent -File $tempFile -Container 'deployments' -Blob 'functionapp.zip' -Context $ctx -Force; Remove-Item $tempFile;",
+        "scriptContent": "Start-Sleep -Seconds 60; $packageUrl = 'https://github.com/alexumanamonge/Fabric_Auto-Scaling_with_LogicApp/raw/master/Releases/functionapp.zip'; $tempFile = New-TemporaryFile; Invoke-WebRequest -Uri $packageUrl -OutFile $tempFile -UseBasicParsing; $storageAccount = Get-AzStorageAccount -ResourceGroupName $env:RESOURCE_GROUP -Name $env:STORAGE_ACCOUNT; $ctx = $storageAccount.Context; Set-AzStorageBlobContent -File $tempFile -Container 'deployments' -Blob 'functionapp.zip' -Context $ctx -Force; Remove-Item $tempFile;",
         "environmentVariables": [
           {
             "name": "RESOURCE_GROUP",
