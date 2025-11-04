@@ -131,19 +131,7 @@ You'll receive an email for each scaling action with:
 - Threshold value
 - Timestamp
 
-## 🔍 Monitoring
-
-### View Scaling Activity
-
-**Logic App Run History:**
-1. Azure Portal > Logic App > Overview > Runs history
-2. Click any run to see detailed execution
-3. Check "Query_Capacity_Metrics" to see actual utilization data
-4. Check "Check_Scale_Up_Condition" to see violation counts
-
-**Application Insights:**
-- Deployed automatically for advanced monitoring
-- Query logs, set up alerts, analyze patterns
+� For monitoring details, testing instructions, and troubleshooting, see [DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md).
 
 ## 💡 Customization Examples
 
@@ -174,30 +162,33 @@ See [DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md) for customization guidance.
 - Increase `checkIntervalMinutes` to 10 → halves costs
 - Disable during off-hours → save 60-70%
 
-## 🧪 Testing
+## 💡 Customization Examples
 
-See [Scripts/LOAD-TESTING-README.md](./Scripts/LOAD-TESTING-README.md) for:
-- PowerShell script to generate sustained load
-- Python notebook for compute-intensive operations
-- Manual testing approaches
+### Different Thresholds for Business Hours
 
-## 📚 Documentation
+Edit the Logic App to add conditions based on time:
+- Scale up aggressively during business hours (70% threshold, 3 min sustained)
+- Scale conservatively off-hours (85% threshold, 10 min sustained)
 
-- **[DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md)** - Complete deployment instructions, troubleshooting
-- **[Scripts/LOAD-TESTING-README.md](./Scripts/LOAD-TESTING-README.md)** - Load generation for testing
-- **[Example/alert-configuration.md](./Example/alert-configuration.md)** - Sample alert configurations
+### Multi-Tier Scaling
+
+Add nested conditions to scale to different SKUs based on utilization:
+- ≥90% → F256
+- ≥80% → F128
+- ≥70% → F64
+
+See [DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md) for customization guidance and troubleshooting.
 
 ## 🤝 Contributing
 
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
+Contributions welcome! Please fork the repository, create a feature branch, and submit a pull request.
 
-## 📝 License
+---
 
-MIT License - see LICENSE file
+## � License & Disclaimer
 
-## ⭐ Acknowledgments
+**MIT License** - This solution is provided **as-is** without any warranties or guarantees. Use at your own risk.
+
+The authors and contributors are not responsible for any costs, data loss, service disruptions, or other issues that may arise from using this solution. Always test thoroughly in a non-production environment before deploying to production.
 
 Built for Microsoft Fabric capacity optimization based on real-world enterprise requirements.
