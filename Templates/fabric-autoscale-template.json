@@ -304,7 +304,7 @@
                 "body": {
                   "queries": [
                     {
-                      "query": "EVALUATE TOPN(10, 'Timepoint CU Detail')"
+                      "query": "EVALUATE TOPN(10, 'Usage Summary (Last 24 hours)')"
                     }
                   ],
                   "serializerSettings": {
