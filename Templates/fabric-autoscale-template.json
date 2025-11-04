@@ -436,7 +436,7 @@
                   "type": "IncrementVariable",
                   "inputs": {
                     "name": "totalUtilization",
-                    "value": "@float(item()[1])"
+                    "value": "@float(item()['Usage Summary (Last 1 hour)[Average CU %]'])"
                   },
                   "runAfter": {
                     "Increment_DataPointCount": [
@@ -450,7 +450,7 @@
                     "and": [
                       {
                         "greaterOrEquals": [
-                          "@float(item()[1])",
+                          "@float(item()['Usage Summary (Last 1 hour)[Average CU %]'])",
                           "@parameters('scaleUpThreshold')"
                         ]
                       }
@@ -477,7 +477,7 @@
                     "and": [
                       {
                         "lessOrEquals": [
-                          "@float(item()[1])",
+                          "@float(item()['Usage Summary (Last 1 hour)[Average CU %]'])",
                           "@parameters('scaleDownThreshold')"
                         ]
                       }
