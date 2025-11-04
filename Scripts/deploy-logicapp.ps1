@@ -137,9 +137,9 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     
     Write-Host "3. GRANT POWER BI API PERMISSIONS:" -ForegroundColor Cyan
-    Write-Host "   - Go to Azure Portal > Azure Active Directory > Enterprise Applications" -ForegroundColor White
+    Write-Host "   - Go to Azure Portal, Azure Active Directory, Enterprise Applications" -ForegroundColor White
     Write-Host "   - Search for Principal ID: $principalId" -ForegroundColor White
-    Write-Host "   - Click on the application > Permissions" -ForegroundColor White
+    Write-Host "   - Click on the application, then Permissions" -ForegroundColor White
     Write-Host "   - Add Power BI Service API permissions:" -ForegroundColor White
     Write-Host "     * Dataset.Read.All" -ForegroundColor Green
     Write-Host "     * Workspace.Read.All" -ForegroundColor Green
@@ -155,11 +155,12 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "Deployment Complete!" -ForegroundColor Green
     Write-Host "=====================================" -ForegroundColor Green
     Write-Host "The Logic App will check capacity metrics every $CheckIntervalMinutes minutes." -ForegroundColor White
-    Write-Host "Scaling occurs when threshold violations are sustained for $SustainedMinutes minutes (≥3 violations)." -ForegroundColor White
+    Write-Host "Scaling occurs when threshold violations are sustained for $SustainedMinutes minutes (>=3 violations)." -ForegroundColor White
     Write-Host ""
     
 } else {
-    Write-Host "`n✗ Deployment failed!" -ForegroundColor Red
+    Write-Host "" -ForegroundColor Red
+    Write-Host "Deployment failed!" -ForegroundColor Red
     Write-Host "Check the error messages above for details." -ForegroundColor Red
     exit 1
 }

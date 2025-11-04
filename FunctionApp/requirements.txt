@@ -1,8 +1,0 @@
-# Azure Functions
-azure-functions>=1.18.0
-
-# Azure Identity for Managed Identity authentication
-azure-identity>=1.15.0
-
-# HTTP requests
-requests>=2.31.0

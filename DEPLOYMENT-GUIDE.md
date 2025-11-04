@@ -149,6 +149,10 @@ az role assignment create \
 
 **Why:** The Logic App needs to read capacity metrics from the Capacity Metrics App dataset.
 
+**IMPORTANT: Member Role Required**
+
+> The Logic App requires **Member** role (not Viewer) to execute DAX queries via the Power BI REST API. Viewer access will result in authorization errors.
+
 **Primary Method: Workspace Access (Recommended)**
 
 1. Go to **Power BI Service**: https://app.powerbi.com
@@ -158,10 +162,10 @@ az role assignment create \
 5. Click **+ Add people or groups**
 6. In the search box, paste the **Logic App's Principal ID** (from deployment output)
 7. The Logic App will appear (named `fabricautoscale-*`)
-8. Assign it the **Viewer** role (or Member if you prefer)
+8. Assign it the **Member** role
 9. Click **Add**
 
-**✅ Success indicator:** Logic App appears in the workspace members list.
+**✅ Success indicator:** Logic App appears in the workspace members list with Member role.
 
 **Alternative Method: Enterprise Application Permissions (If Required by Organization)**
 
@@ -210,9 +214,18 @@ In the run history, expand **Query_Capacity_Metrics** action:
       "tables": [
         {
           "rows": [
-            ["2024-01-15T10:15:00", 45.2],
-            ["2024-01-15T10:10:00", 43.8],
-            ["2024-01-15T10:05:00", 47.1]
+            {
+              "Usage Summary (Last 1 hour)[Timestamp]": "2024-01-15T10:15:00",
+              "Usage Summary (Last 1 hour)[Average CU %]": 45.2
+            },
+            {
+              "Usage Summary (Last 1 hour)[Timestamp]": "2024-01-15T10:14:30",
+              "Usage Summary (Last 1 hour)[Average CU %]": 43.8
+            },
+            {
+              "Usage Summary (Last 1 hour)[Timestamp]": "2024-01-15T10:14:00",
+              "Usage Summary (Last 1 hour)[Average CU %]": 47.1
+            }
           ]
         }
       ]
@@ -221,9 +234,15 @@ In the run history, expand **Query_Capacity_Metrics** action:
 }
 ```
 
+**Notes:**
+- Data points are at 30-second intervals (perfect granularity for monitoring)
+- Query returns last 40 data points (20 minutes of history)
+- Each row contains timestamp and utilization percentage
+
 **Troubleshooting if empty:**
 - Dataset ID may be incorrect → See [Troubleshooting: Invalid Dataset ID](#invalid-dataset-id)
 - Capacity Metrics App may not have data yet → Wait 24-48 hours after app installation
+- Workspace access insufficient → Ensure Member role assigned (see Step 2.3)
 
 ---
 
@@ -231,7 +250,7 @@ In the run history, expand **Query_Capacity_Metrics** action:
 
 ### Invalid Dataset ID
 
-**Error:** `"Dataset 'CFafbeb4-7a8b-43d7-a3d3-0a8f8c6b0e85' not found"`
+**Error:** `"Dataset '{dataset-id}' not found"` or `"PowerBIEntityNotFound"`
 
 **Solution:**
 1. Go to **Power BI Service** > Your workspace
@@ -245,6 +264,18 @@ In the run history, expand **Query_Capacity_Metrics** action:
    https://api.powerbi.com/v1.0/myorg/groups/@{parameters('fabricWorkspaceId')}/datasets/YOUR-DATASET-ID/executeQueries
    ```
 8. Click **Save**
+
+### Authorization Errors
+
+**Error:** `"PowerBIEntityNotFound"` or `"Authorization has been denied"`
+
+**Solution:**
+1. Verify Logic App has **Member** role in Power BI workspace (not Viewer)
+2. Go to Power BI Service > Workspace > Manage access
+3. Find the Logic App (by Principal ID)
+4. Change role to **Member**
+5. Wait 2-3 minutes for permissions to propagate
+6. Retry the Logic App run
 
 ### Office 365 Connection Failed
 
@@ -263,10 +294,20 @@ In the run history, expand **Query_Capacity_Metrics** action:
 ### Scaling Not Happening
 
 **Checklist:**
-- [ ] At least 3 data points exceed threshold in sustained period
+- [ ] Sustained threshold met:
+  - Scale-UP: At least **10 data points** (5 minutes) above upper threshold
+  - Scale-DOWN: At least **20 data points** (10 minutes) below lower threshold
 - [ ] Current SKU is different from target SKU (won't scale if already at target)
-- [ ] Contributor role assigned on Fabric capacity
-- [ ] Check Logic App run history for condition evaluation results
+- [ ] Contributor role assigned on Fabric capacity (see Step 2.2)
+- [ ] Check Logic App run history:
+  - Expand **Check_Scale_Up_Condition** to see `sustainedHighCount` value
+  - Expand **Check_Scale_Down_Condition** to see `sustainedLowCount` value
+  - These counts must reach 10 (up) or 20 (down) to trigger scaling
+
+**Understanding the Counts:**
+- The Logic App queries the last 40 data points (20 minutes at 30-second intervals)
+- It counts how many consecutive points exceed the threshold
+- Default settings: 10 points = 5 minutes sustained for scale-up, 20 points = 10 minutes for scale-down
 
 ---
 
@@ -280,8 +321,13 @@ In the run history, expand **Query_Capacity_Metrics** action:
 | `scaleDownThreshold` | 30 | CPU % to trigger scale down |
 | `scaleUpSku` | F128 | SKU to scale up to |
 | `scaleDownSku` | F64 | SKU to scale down to |
-| `sustainedMinutes` | 15 | Minutes threshold must be sustained |
+| `sustainedMinutes` | 5 | Minutes for scale-UP threshold (scale-DOWN uses 2x = 10 min) |
 | `checkIntervalMinutes` | 5 | How often to check metrics |
+
+**Note on Asymmetric Scaling:**
+- `sustainedMinutes` controls the scale-UP window (default 5 minutes = 10 data points)
+- Scale-DOWN automatically requires twice as long (default 10 minutes = 20 data points)
+- This prevents "flapping" by being responsive to demand but conservative when scaling down
 
 ### Customizing Parameters
 
@@ -327,9 +373,9 @@ After scaling, you'll receive an email:
 - Action: SCALED UP / SCALED DOWN
 - Previous SKU: F64
 - New SKU: F128
-- Trigger: 4 violations over 15 minutes
+- Trigger: 10 violations over 5 minutes (scale-up) or 20 violations over 10 minutes (scale-down)
 - Average Utilization: 87.3%
-- Threshold: 80%
+- Threshold: 80% (scale-up) or 30% (scale-down)
 - Timestamp: 2024-01-15 10:15:00 UTC
 
 ### Application Insights

@@ -1,7 +1,0 @@
-*.pyc
-.git*
-.vscode
-local.settings.json
-test
-.venv
-__pycache__
