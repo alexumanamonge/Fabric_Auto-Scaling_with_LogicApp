@@ -646,7 +646,7 @@
       "apiVersion": "2020-10-01",
       "name": "deployFunctionCode",
       "location": "[parameters('location')]",
-      "kind": "AzurePowerShell",
+      "kind": "AzureCLI",
       "identity": {
         "type": "UserAssigned",
         "userAssignedIdentities": {
@@ -658,11 +658,11 @@
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'deploymentScriptIdentity')]"
       ],
       "properties": {
-        "azPowerShellVersion": "9.0",
+        "azCliVersion": "2.52.0",
         "retentionInterval": "PT1H",
         "timeout": "PT10M",
         "cleanupPreference": "OnSuccess",
-        "scriptContent": "Start-Sleep -Seconds 60; $packageUrl = 'https://github.com/alexumanamonge/Fabric_Auto-Scaling_with_LogicApp/raw/master/Releases/functionapp.zip'; $tempFile = New-TemporaryFile; Invoke-WebRequest -Uri $packageUrl -OutFile $tempFile -UseBasicParsing; $ctx = New-AzStorageContext -StorageAccountName $env:STORAGE_ACCOUNT -UseConnectedAccount; Set-AzStorageBlobContent -File $tempFile -Container 'deployments' -Blob 'functionapp.zip' -Context $ctx -Force; Remove-Item $tempFile;",
+        "scriptContent": "sleep 60 && wget -O /tmp/functionapp.zip https://github.com/alexumanamonge/Fabric_Auto-Scaling_with_LogicApp/raw/master/Releases/functionapp.zip && az storage blob upload --account-name $STORAGE_ACCOUNT --container-name deployments --name functionapp.zip --file /tmp/functionapp.zip --auth-mode login --overwrite",
         "environmentVariables": [
           {
             "name": "RESOURCE_GROUP",
