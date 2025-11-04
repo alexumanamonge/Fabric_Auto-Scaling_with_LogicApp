@@ -304,7 +304,7 @@
                 "body": {
                   "queries": [
                     {
-                      "query": "EVALUATE SUMMARIZECOLUMNS('Timepoint'[Datetime], FILTER(ALL('Capacities'), 'Capacities'[Capacity Name] = \"@{parameters('fabricCapacityName')}\" && 'Timepoint'[Datetime] >= DATETIME(@{formatDateTime(variables('startTime'), 'yyyy-MM-dd')}, @{formatDateTime(variables('startTime'), 'HH:mm:ss')}) && 'Timepoint'[Datetime] <= DATETIME(@{formatDateTime(utcNow(), 'yyyy-MM-dd')}, @{formatDateTime(utcNow(), 'HH:mm:ss')})), \"Utilization\", [Utilization %]) ORDER BY 'Timepoint'[Datetime] DESC"
+                      "query": "EVALUATE SUMMARIZECOLUMNS('Timepoint'[Datetime], FILTER(ALL('Capacities'), 'Capacities'[Capacity Name] = \"@{parameters('fabricCapacityName')}\" && 'Timepoint'[Datetime] >= DATETIME(@{formatDateTime(variables('startTime'), 'yyyy')}, @{formatDateTime(variables('startTime'), 'MM')}, @{formatDateTime(variables('startTime'), 'dd')}, @{formatDateTime(variables('startTime'), 'HH')}, @{formatDateTime(variables('startTime'), 'mm')}, @{formatDateTime(variables('startTime'), 'ss')}) && 'Timepoint'[Datetime] <= DATETIME(@{formatDateTime(utcNow(), 'yyyy')}, @{formatDateTime(utcNow(), 'MM')}, @{formatDateTime(utcNow(), 'dd')}, @{formatDateTime(utcNow(), 'HH')}, @{formatDateTime(utcNow(), 'mm')}, @{formatDateTime(utcNow(), 'ss')})), \"Utilization\", [Utilization %]) ORDER BY 'Timepoint'[Datetime] DESC"
                     }
                   ],
                   "serializerSettings": {
