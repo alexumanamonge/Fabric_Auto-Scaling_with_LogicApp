@@ -12,12 +12,12 @@
 
 ## Prerequisites
 
-### Required Software
-- **Azure CLI** 2.50.0 or later ([Install](https://docs.microsoft.com/cli/azure/install-azure-cli))
-- **Azure Functions Core Tools** 4.x ([Install](https://docs.microsoft.com/azure/azure-functions/functions-run-local))
-- **Python 3.11** (for local testing - optional)
-- **PowerShell 7+** (for Windows deployment)
-- **Git** (to clone the repository)
+### Required Software (for scripted deployment only)
+- **Azure CLI** 2.50.0 or later ([Install](https://docs.microsoft.com/cli/azure/install-azure-cli)) - Only needed for PowerShell/Bash deployment scripts
+- **PowerShell 7+** (for Windows deployment script) - Optional
+- **Git** (to clone the repository) - Optional
+
+> **Note**: For **Azure Portal deployment**, no software installation is required! The ARM template handles everything automatically including Function App code deployment.
 
 ### Required Azure Resources
 - **Azure Subscription** with active Fabric capacity
@@ -67,7 +67,9 @@ Gather the following information:
 | Scale Down SKU | `F64` | Target SKU for scale down |
 | Location | `eastus` | Azure region (same as capacity) |
 
-### 3. Clone the Repository
+### 3. Optional: Clone the Repository
+
+Only needed if using PowerShell/Bash deployment scripts:
 
 ```bash
 git clone https://github.com/alexumanamonge/Fabric_Auto-Scaling_with_LogicApp.git
@@ -78,18 +80,61 @@ cd Fabric_Auto-Scaling_with_LogicApp
 
 ## Deployment Methods
 
-### Method 1: Azure Portal (Deploy to Azure Button)
+### Important: Fork Repository First (For Production)
 
-1. Click **Deploy to Azure** button in README
-2. Fill in the deployment form in Azure Portal
+**⚠️ For production/customer deployments**, fork this repository to ensure your deployment is isolated from future updates:
+
+1. **Fork the Repository**:
+   - Click **Fork** button on GitHub
+   - Creates your own copy under your account
+
+2. **Update ARM Template in Your Fork**:
+   - Edit `Templates/fabric-autoscale-template.json`
+   - Find line ~130: `"WEBSITE_RUN_FROM_PACKAGE": "https://raw.githubusercontent.com/alexumanamonge/..."`
+   - Replace `alexumanamonge` with **YOUR GitHub username**
+   - Commit the change
+
+3. **Deploy from Your Fork**:
+   - Use the Deploy to Azure button from **your forked repository's README**
+   - Your deployment will use code from your fork (isolated from upstream changes)
+
+> **Why Fork?** Prevents breaking changes in the main repository from affecting your production deployment. You control when to pull updates.
+
+---
+
+### Method 1: Azure Portal (Recommended - Easiest)
+
+**✅ No software installation required! Complete deployment in 3 clicks.**
+
+**For Testing/Evaluation** (uses main repository):
+
+1. Click the **Deploy to Azure** button:
+   
+   [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexumanamonge%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json)
+
+**For Production** (uses your fork - recommended):
+
+1. Fork the repository and update ARM template as described above
+2. In your forked repository, create a Deploy to Azure button pointing to your template
+3. Click your customized deploy button
+
+2. Fill in the deployment form:
+   - **Subscription**: Select your Azure subscription
+   - **Resource Group**: Create new or select existing
+   - **Region**: Choose same region as your Fabric capacity
+   - **Fabric Capacity Name**: Enter your capacity name
+   - **Fabric Workspace ID**: Enter workspace GUID
+   - **Notification Email**: Enter your email
+   - **Scale Up/Down SKUs**: Configure target SKUs
+   - **Thresholds**: Set utilization percentages
+
 3. Click **Review + create** → **Create**
-4. After deployment, manually deploy Function App code:
-   ```bash
-   cd FunctionApp
-   func azure functionapp publish <FUNCTION_APP_NAME> --python
-   ```
 
-### Method 2: PowerShell Script (Recommended for Windows)
+4. **Wait for deployment to complete** (typically 5-10 minutes)
+
+> **✅ Done!** The ARM template automatically deploys all resources INCLUDING the Python Function App code from GitHub. No additional deployment steps required!
+
+### Method 2: PowerShell Script (For Automation)
 
 ```powershell
 # Login to Azure
@@ -114,11 +159,11 @@ az account set --subscription "<SUBSCRIPTION_ID>"
 
 **What the script does**:
 1. Deploys ARM template (Function App, Logic App, Storage, App Insights, connections)
-2. Attempts to deploy Function App code (requires Azure Functions Core Tools)
+2. Function App code automatically deploys from GitHub via `WEBSITE_RUN_FROM_PACKAGE`
 3. Displays principal IDs for role assignments
 4. Provides post-deployment instructions
 
-### Method 3: Bash Script (Linux/Mac/WSL)
+### Method 3: Bash Script (Linux/Mac/Cloud Shell)
 
 ```bash
 # Login to Azure
@@ -163,11 +208,9 @@ az deployment group create \
     scaleUpThreshold=80 \
     scaleDownThreshold=40 \
     sustainedMinutes=15
-
-# Deploy Function App code
-cd FunctionApp
-func azure functionapp publish <FUNCTION_APP_NAME> --python
 ```
+
+> **Note**: The ARM template automatically deploys the Function App code from GitHub. No additional deployment steps are needed.
 
 ---
 
@@ -326,22 +369,31 @@ Expected response:
 
 ## Troubleshooting
 
-### Issue: Function App deployment fails
+### Issue: Function App not showing after deployment
 
-**Symptoms**: `func azure functionapp publish` fails with authentication error
+**Symptoms**: Function App exists but no functions are listed
 
 **Solutions**:
-1. Ensure you're logged in: `az login`
-2. Set correct subscription: `az account set --subscription <SUB_ID>`
-3. Verify Function App exists: `az functionapp list --resource-group rg-fabric-autoscale`
-4. Try deploying via VS Code instead
+1. Wait 2-3 minutes for automatic deployment from GitHub to complete
+2. Check Function App configuration has `WEBSITE_RUN_FROM_PACKAGE` setting:
+   ```bash
+   az functionapp config appsettings list \
+     --resource-group rg-fabric-autoscale \
+     --name func-fabricscale-xxxxx \
+     --query "[?name=='WEBSITE_RUN_FROM_PACKAGE']"
+   ```
+3. Restart the Function App:
+   ```bash
+   az functionapp restart --resource-group rg-fabric-autoscale --name func-fabricscale-xxxxx
+   ```
+4. Check Application Insights for deployment errors
 
 ### Issue: Storage account access errors during deployment
 
 **Symptoms**: ARM deployment fails with "Creation of storage file share failed with: '(403) Forbidden'"
 
 **Solutions**:
-1. Template now uses **managed identity authentication** - no storage keys needed
+1. Template uses **managed identity authentication** - no storage keys needed
 2. Verify no Azure policies are blocking role assignments
 3. Ensure `allowSharedKeyAccess` is not disabled by subscription policy
 4. If issue persists, delete partially created resources and redeploy
@@ -388,13 +440,34 @@ Expected response:
 **Symptoms**: Function logs show Power BI API error about missing dataset
 
 **Solutions**:
-1. The Capacity Metrics App dataset may have a different ID
-2. Update Function App code to discover the correct dataset:
-   ```python
-   # List all datasets in workspace
-   api_url = f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets"
+1. Verify Capacity Metrics App is properly installed and configured
+2. The dataset ID may be different - check in Power BI workspace
+3. Grant Function App Managed Identity access to the workspace
+4. Check Function App logs in Application Insights for specific error details
+
+### Issue: Want to update Function App code
+
+**Symptoms**: Need to deploy new version of Python code
+
+**Solutions**:
+
+**Option 1: Update via GitHub (Recommended)**
+1. Update code in the `FunctionApp` folder
+2. Create new zip: `Compress-Archive -Path FunctionApp\* -DestinationPath Releases\functionapp.zip -Force`
+3. Commit and push to GitHub
+4. Restart Function App (it will pull latest code automatically)
+
+**Option 2: Manual Package Upload**
+1. Create zip of FunctionApp folder
+2. Upload to Azure Blob Storage
+3. Generate SAS token
+4. Update Function App setting:
+   ```bash
+   az functionapp config appsettings set \
+     --resource-group rg-fabric-autoscale \
+     --name func-fabricscale-xxxxx \
+     --settings "WEBSITE_RUN_FROM_PACKAGE=<YOUR_BLOB_URL_WITH_SAS>"
    ```
-3. Redeploy Function App with correct dataset ID
 
 ---
 

@@ -35,13 +35,45 @@ The architecture ensures that scaling only occurs when utilization thresholds ar
 
 ## Deployment
 
-### Quick Deploy
+### For Production/Customer Deployments
 
-Click the "Deploy to Azure" button to deploy the **complete solution** including Function App code in one step.
+**⚠️ Important**: To ensure your deployment is isolated from future updates to this repository, **fork this repository first** before deploying.
+
+#### Step 1: Fork the Repository
+1. Click the **Fork** button at the top of this GitHub page
+2. This creates your own copy under your GitHub account
+
+#### Step 2: Update ARM Template
+In your forked repository, update `Templates/fabric-autoscale-template.json`:
+
+Find this line (around line 130):
+```json
+"WEBSITE_RUN_FROM_PACKAGE": "https://raw.githubusercontent.com/alexumanamonge/Fabric_Auto-Scaling_with_LogicApp/master/Releases/functionapp.zip"
+```
+
+Replace with your GitHub username:
+```json
+"WEBSITE_RUN_FROM_PACKAGE": "https://raw.githubusercontent.com/YOUR-USERNAME/Fabric_Auto-Scaling_with_LogicApp/master/Releases/functionapp.zip"
+```
+
+#### Step 3: Deploy from Your Fork
+Click the "Deploy to Azure" button **from your forked repository's README**.
+
+> **Why Fork?**
+> - ✅ Isolates your deployment from upstream changes
+> - ✅ You control when to pull updates
+> - ✅ You can customize the solution for your needs
+> - ✅ Prevents breaking changes from affecting production
+
+---
+
+### Quick Deploy (For Testing Only)
+
+For testing or evaluation, you can deploy directly from this repository:
 
  [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexumanamonge%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json)
 
-> **✅ Fully Automated**: The ARM template automatically deploys the Function App Python code from GitHub. No manual code deployment required!
+> **⚠️ Note**: Direct deployments will automatically use the latest code from this repository. For production use, fork the repository first.
 
 ### Full Instructions
 
