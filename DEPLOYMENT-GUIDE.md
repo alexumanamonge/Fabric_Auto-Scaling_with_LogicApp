@@ -12,12 +12,13 @@
 
 ## Prerequisites
 
-### Required Software (for scripted deployment only)
-- **Azure CLI** 2.50.0 or later ([Install](https://docs.microsoft.com/cli/azure/install-azure-cli)) - Only needed for PowerShell/Bash deployment scripts
-- **PowerShell 7+** (for Windows deployment script) - Optional
-- **Git** (to clone the repository) - Optional
+### Required Software
+**None required for Azure Portal deployment!** The one-click deployment handles everything automatically.
 
-> **Note**: For **Azure Portal deployment**, no software installation is required! The ARM template handles everything automatically including Function App code deployment.
+Optional (for advanced scenarios):
+- **Azure CLI** 2.50.0 or later - Only for PowerShell/Bash scripts or manual verification
+- **PowerShell 7+** - Only for Windows deployment scripts
+- **Git** - Only if you want to clone and modify the code
 
 ### Required Azure Resources
 - **Azure Subscription** with active Fabric capacity
@@ -67,66 +68,46 @@ Gather the following information:
 | Scale Down SKU | `F64` | Target SKU for scale down |
 | Location | `eastus` | Azure region (same as capacity) |
 
-### 3. Optional: Clone the Repository
+### 3. Optional: Fork the Repository
 
-Only needed if using PowerShell/Bash deployment scripts:
-
-```bash
-git clone https://github.com/alexumanamonge/Fabric_Auto-Scaling_with_LogicApp.git
-cd Fabric_Auto-Scaling_with_LogicApp
-```
+**Recommended for production** to isolate your deployment from future updates. Just fork on GitHub - no cloning needed!
 
 ---
 
 ## Deployment Methods
 
-### Important: Fork Repository First (For Production)
+### Method 1: Azure Portal - One-Click Deployment (Recommended)
 
-**⚠️ For production/customer deployments**, fork this repository to ensure your deployment is isolated from future updates:
+**✅ Truly one-click! Infrastructure AND code deployed automatically.**
 
-1. **Fork the Repository**:
-   - Click **Fork** button on GitHub
-   - Creates your own copy under your account
+The ARM template uses Azure Deployment Scripts to automatically:
+- ✅ Create all Azure resources (Function App, Logic App, Storage, App Insights)
+- ✅ Configure Managed Identity and Azure AD authentication
+- ✅ Download Function App code from GitHub
+- ✅ Deploy code to Function App via blob storage
+- ✅ Set up all role assignments
 
-2. **Update ARM Template in Your Fork**:
-   - Edit `Templates/fabric-autoscale-template.json`
-   - Find line ~130: `"WEBSITE_RUN_FROM_PACKAGE": "https://raw.githubusercontent.com/alexumanamonge/..."`
-   - Replace `alexumanamonge` with **YOUR GitHub username**
-   - Commit the change
+#### For Production (Use Your Fork)
 
-3. **Deploy from Your Fork**:
-   - Use the Deploy to Azure button from **your forked repository's README**
-   - Your deployment will use code from your fork (isolated from upstream changes)
+1. **Fork this repository first** (click Fork button on GitHub)
+2. Deploy using the button from **your forked repository's README**
+3. Fill in the parameters and deploy
 
-> **Why Fork?** Prevents breaking changes in the main repository from affecting your production deployment. You control when to pull updates.
+#### For Testing/Evaluation (Quick Deploy)
 
----
+Click to deploy from main repository:
 
-### Method 1: Azure Portal (Recommended - Easiest)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexumanamonge%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json)
 
-**✅ No software installation required! Complete deployment in 3 clicks.**
-
-**For Testing/Evaluation** (uses main repository):
-
-1. Click the **Deploy to Azure** button:
-   
-   [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexumanamonge%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json)
-
-**For Production** (uses your fork - recommended):
-
-1. Fork the repository and update ARM template as described above
-2. In your forked repository, create a Deploy to Azure button pointing to your template
-3. Click your customized deploy button
-
-2. Fill in the deployment form:
-   - **Subscription**: Select your Azure subscription
-   - **Resource Group**: Create new or select existing
-   - **Region**: Choose same region as your Fabric capacity
-   - **Fabric Capacity Name**: Enter your capacity name
-   - **Fabric Workspace ID**: Enter workspace GUID
-   - **Notification Email**: Enter your email
-   - **Scale Up/Down SKUs**: Configure target SKUs
-   - **Thresholds**: Set utilization percentages
+**Deployment Parameters:**
+- **Subscription**: Select your Azure subscription
+- **Resource Group**: Create new or select existing
+- **Region**: Choose same region as your Fabric capacity
+- **Fabric Capacity Name**: Enter your capacity name
+- **Fabric Workspace ID**: Enter workspace GUID  
+- **Notification Email**: Enter your email
+- **Scale Up/Down SKUs**: Configure target SKUs
+- **Thresholds**: Set utilization percentages
 
 3. Click **Review + create** → **Create**
 
@@ -146,6 +127,24 @@ az account set --subscription "<SUBSCRIPTION_ID>"
 # Run deployment script
 .\Scripts\deploy-logicapp.ps1 `
   -ResourceGroup "rg-fabric-autoscale" `
+
+**Deployment time:** 5-10 minutes
+
+**That's it!** Everything is deployed and ready to use automatically.
+
+---
+
+### Method 2: PowerShell Script (For Automation)
+
+For automated deployments or CI/CD pipelines:
+
+```powershell
+# Login to Azure
+az login
+
+# Run deployment script
+.\Scripts\deploy-logicapp.ps1 `
+  -ResourceGroup "rg-fabric-autoscale" `
   -CapacityName "MyFabricCapacity" `
   -WorkspaceId "12345678-1234-1234-1234-123456789abc" `
   -Email "admin@company.com" `
@@ -158,19 +157,15 @@ az account set --subscription "<SUBSCRIPTION_ID>"
 ```
 
 **What the script does**:
-1. Deploys ARM template (Function App, Logic App, Storage, App Insights, connections)
-2. Function App code automatically deploys from GitHub via `WEBSITE_RUN_FROM_PACKAGE`
-3. Displays principal IDs for role assignments
-4. Provides post-deployment instructions
+1. Deploys ARM template with all resources
+2. Azure Deployment Script automatically downloads and deploys Function App code
+3. Displays deployment outputs and next steps
 
 ### Method 3: Bash Script (Linux/Mac/Cloud Shell)
 
 ```bash
 # Login to Azure
 az login
-
-# Set subscription (if you have multiple)
-az account set --subscription "<SUBSCRIPTION_ID>"
 
 # Make script executable
 chmod +x Scripts/deploy-logicapp.sh
