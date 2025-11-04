@@ -107,15 +107,8 @@ curl -sL https://raw.githubusercontent.com/alexumanamonge/Fabric_Auto-Scaling_wi
 ```
 
 ---
-### Quick Deploy (For Testing Only)
 
-For testing or evaluation, you can deploy directly from this repository:
-
- [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexumanamonge%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json)
-
-> **⚠️ Note**: Direct deployments will automatically use the latest code from this repository. For production use, fork the repository first.
-
-### Full Instructions
+### 📖 Full Deployment Guide
 
 For complete deployment instructions, prerequisites, and post-deployment configuration, see:
 
