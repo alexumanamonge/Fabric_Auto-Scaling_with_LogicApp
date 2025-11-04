@@ -37,23 +37,62 @@ The architecture ensures that scaling only occurs when utilization thresholds ar
 
 ### For Production/Customer Deployments
 
-**⚠️ Important**: To ensure your deployment is isolated from future updates to this repository, **fork this repository first** before deploying.
+**✅ One-Click Deployment** - Infrastructure AND code deployed automatically!
 
-#### Step 1: Fork the Repository
-1. Click the **Fork** button at the top of this GitHub page
-2. This creates your own copy under your GitHub account
+#### Step 1: Fork the Repository (Optional but Recommended)
+For production isolation, fork this repository first. See [Fork-First Workflow](#fork-first-workflow) below.
 
-#### Step 2: Deploy Infrastructure
-Click the "Deploy to Azure" button to deploy the infrastructure:
+#### Step 2: Deploy to Azure
+Click the "Deploy to Azure" button to deploy everything:
 
  [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexumanamonge%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json)
 
-#### Step 3: Upload Function App Code
-After infrastructure deployment completes, upload the Function App package.
+The deployment automatically:
+- ✅ Creates all Azure resources (Function App, Logic App, Storage, App Insights)
+- ✅ Configures Managed Identity authentication
+- ✅ Enables Azure AD authentication on Function App
+- ✅ Downloads and deploys Function App code from GitHub
+- ✅ Sets up all necessary role assignments
+
+**That's it!** No manual steps required.
+
+---
+
+### Fork-First Workflow (For Production Isolation)
+
+**⚠️ Important**: To ensure your deployment is isolated from future updates to this repository, **fork this repository first** before deploying.
+
+### Fork-First Workflow (For Production Isolation)
+
+**⚠️ Recommended for Production**: Fork this repository to isolate your deployment from future updates.
+
+#### Why Fork?
+- ✅ Your deployment won't be affected by upstream changes
+- ✅ You control when to pull updates
+- ✅ You can customize the solution for your needs
+
+#### How to Fork and Deploy
+1. Click the **Fork** button at the top of this GitHub page
+2. Deploy using the "Deploy to Azure" button **from your forked repository's README**
+3. All resources will use code from your fork
+
+---
+
+### Quick Deploy (For Testing Only)
+
+For testing or evaluation, deploy directly from this repository:
+
+ [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexumanamonge%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json)
+
+> **Note**: Test deployments will automatically use the latest code from this repository.
+
+---
+
+### Manual Code Deployment (If Needed)
+
+If the automatic deployment doesn't work, you can manually upload the function code:
 
 **Option A: From Azure Cloud Shell (No clone needed)**
-
-Copy and run this command in Azure Cloud Shell:
 
 ```bash
 curl -sL https://raw.githubusercontent.com/alexumanamonge/Fabric_Auto-Scaling_with_LogicApp/master/Scripts/deploy-function-code-standalone.ps1 | pwsh -Command - -ResourceGroupName "rg-fabric-autoscale" -StorageAccountName "stfabricscalexxxxx"
@@ -66,8 +105,6 @@ curl -sL https://raw.githubusercontent.com/alexumanamonge/Fabric_Auto-Scaling_wi
     -ResourceGroupName "rg-fabric-autoscale" `
     -StorageAccountName "stfabricscalexxxxx"
 ```
-
-The Function App will automatically detect and deploy the code within 1-2 minutes.
 
 > **Why Fork?**
 > - ✅ Isolates your deployment from upstream changes
