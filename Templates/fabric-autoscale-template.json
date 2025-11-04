@@ -656,7 +656,7 @@
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', parameters('storageAccountName'), 'default', 'deployments')]",
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'deploymentScriptIdentity')]",
-        "[resourceId('Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), 'deploymentScriptIdentity', 'ba0955b4-2d11-453d-a403-e96b0029c9fe'))]"
+        "[resourceId('Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), 'deploymentScriptIdentity', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))]"
       ],
       "properties": {
         "azPowerShellVersion": "9.0",
@@ -685,14 +685,14 @@
     {
       "type": "Microsoft.Authorization/roleAssignments",
       "apiVersion": "2022-04-01",
-      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), 'deploymentScriptIdentity', 'ba0955b4-2d11-453d-a403-e96b0029c9fe')]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), 'deploymentScriptIdentity', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
       "scope": "[concat('Microsoft.Storage/storageAccounts', '/', parameters('storageAccountName'))]",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'deploymentScriptIdentity')]"
       ],
       "properties": {
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba0955b4-2d11-453d-a403-e96b0029c9fe')]",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
         "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'deploymentScriptIdentity'), '2023-01-31').principalId]",
         "principalType": "ServicePrincipal"
       }
