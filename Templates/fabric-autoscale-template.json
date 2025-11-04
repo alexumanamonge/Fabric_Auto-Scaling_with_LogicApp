@@ -197,6 +197,14 @@
               "value": "[reference(resourceId('Microsoft.Insights/components', parameters('appInsightsName')), '2020-02-02').ConnectionString]"
             },
             {
+              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+              "value": "true"
+            },
+            {
+              "name": "ENABLE_ORYX_BUILD",
+              "value": "true"
+            },
+            {
               "name": "WEBSITE_AUTH_AAD_ALLOWED_TENANTS",
               "value": "[subscription().tenantId]"
             }
