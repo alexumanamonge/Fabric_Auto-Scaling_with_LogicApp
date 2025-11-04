@@ -1,0 +1,626 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": {
+      "type": "string",
+      "defaultValue": "FabricAutoScaleLogicApp"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "subscriptionId": {
+      "type": "string",
+      "defaultValue": "[subscription().subscriptionId]"
+    },
+    "resourceGroup": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().name]"
+    },
+    "fabricCapacityName": {
+      "type": "string"
+    },
+    "notificationEmail": {
+      "type": "string"
+    },
+    "scaleUpThreshold": {
+      "type": "int",
+      "defaultValue": 80,
+      "metadata": {
+        "description": "CU usage percentage threshold to trigger scale up"
+      }
+    },
+    "scaleDownThreshold": {
+      "type": "int",
+      "defaultValue": 40,
+      "metadata": {
+        "description": "CU usage percentage threshold to trigger scale down"
+      }
+    },
+    "scaleUpSku": {
+      "type": "string",
+      "defaultValue": "F128",
+      "metadata": {
+        "description": "SKU to scale up to"
+      }
+    },
+    "scaleDownSku": {
+      "type": "string",
+      "defaultValue": "F64",
+      "metadata": {
+        "description": "SKU to scale down to"
+      }
+    },
+    "sustainedMinutes": {
+      "type": "int",
+      "defaultValue": 15,
+      "metadata": {
+        "description": "Number of minutes the threshold must be exceeded before scaling (minimum 10 minutes recommended)"
+      }
+    },
+    "fabricWorkspaceId": {
+      "type": "string",
+      "metadata": {
+        "description": "Fabric workspace ID where Capacity Metrics App is installed"
+      }
+    },
+    "functionAppName": {
+      "type": "string",
+      "defaultValue": "[concat('func-fabricscale-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Name of the Function App"
+      }
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "defaultValue": "[concat('plan-fabricscale-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Name of the App Service Plan"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "[concat('stfabric', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Storage account name for Function App"
+      }
+    },
+    "appInsightsName": {
+      "type": "string",
+      "defaultValue": "[concat('appi-fabricscale-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "Application Insights name for monitoring"
+      }
+    }
+  },
+  "variables": {
+    "office365ConnectionName": "[concat('office365-', parameters('logicAppName'))]",
+    "office365ConnectionId": "[resourceId('Microsoft.Web/connections', variables('office365ConnectionName'))]",
+    "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+    "functionAppId": "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2021-09-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "minimumTlsVersion": "TLS1_2",
+        "allowBlobPublicAccess": false,
+        "allowSharedKeyAccess": true,
+        "supportsHttpsTrafficOnly": true,
+        "publicNetworkAccess": "Enabled",
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Allow"
+        }
+      }
+    },
+
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[parameters('appInsightsName')]",
+      "location": "[parameters('location')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "RetentionInDays": 90
+      }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-03-01",
+      "name": "[parameters('appServicePlanName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Y1",
+        "tier": "Dynamic",
+        "size": "Y1",
+        "family": "Y"
+      },
+      "properties": {
+        "reserved": true
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-03-01",
+      "name": "[parameters('functionAppName')]",
+      "location": "[parameters('location')]",
+      "kind": "functionapp,linux",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+        "[resourceId('Microsoft.Insights/components', parameters('appInsightsName'))]"
+      ],
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "siteConfig": {
+          "linuxFxVersion": "Python|3.11",
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage__accountName",
+              "value": "[parameters('storageAccountName')]"
+            },
+            {
+              "name": "AzureWebJobsStorage__credential",
+              "value": "managedidentity"
+            },
+            {
+              "name": "WEBSITE_RUN_FROM_PACKAGE",
+              "value": "https://github.com/alexumanamonge/Fabric_Auto-Scaling_with_LogicApp/raw/master/Releases/functionapp.zip"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "python"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId('Microsoft.Insights/components', parameters('appInsightsName')), '2020-02-02').InstrumentationKey]"
+            },
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[reference(resourceId('Microsoft.Insights/components', parameters('appInsightsName')), '2020-02-02').ConnectionString]"
+            },
+            {
+              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+              "value": "true"
+            },
+            {
+              "name": "ENABLE_ORYX_BUILD",
+              "value": "true"
+            },
+            {
+              "name": "WEBSITE_AUTH_AAD_ALLOWED_TENANTS",
+              "value": "[subscription().tenantId]"
+            }
+          ]
+        },
+        "httpsOnly": true,
+        "clientAffinityEnabled": false
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(parameters('functionAppName'), 'LogicApp-FunctionApp-Invoker')]",
+      "scope": "[concat('Microsoft.Web/sites/', parameters('functionAppName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]",
+        "[resourceId('Microsoft.Logic/workflows', parameters('logicAppName'))]"
+      ],
+      "properties": {
+        "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+        "principalId": "[reference(resourceId('Microsoft.Logic/workflows', parameters('logicAppName')), '2019-05-01', 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Web/connections",
+      "apiVersion": "2016-06-01",
+      "name": "[variables('office365ConnectionName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "displayName": "Office 365 Outlook",
+        "api": {
+          "id": "[concat('/subscriptions/', parameters('subscriptionId'), '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/office365')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/connections', variables('office365ConnectionName'))]",
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+      ],
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "actions": {
+            "Get_Current_Capacity_Info": {
+              "type": "Http",
+              "inputs": {
+                "method": "GET",
+                "uri": "https://management.azure.com/subscriptions/@{parameters('subscriptionId')}/resourceGroups/@{parameters('resourceGroup')}/providers/Microsoft.Fabric/capacities/@{parameters('fabricCapacityName')}?api-version=2023-11-01",
+                "authentication": {
+                  "type": "ManagedServiceIdentity"
+                }
+              }
+            },
+            "Parse_Capacity_Info": {
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@body('Get_Current_Capacity_Info')",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sku": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "Get_Current_Capacity_Info": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Call_Function_Check_Metrics": {
+              "type": "Http",
+              "inputs": {
+                "method": "GET",
+                "uri": "https://@{parameters('functionAppName')}.azurewebsites.net/api/CheckCapacityMetrics?capacityName=@{parameters('fabricCapacityName')}&workspaceId=@{parameters('fabricWorkspaceId')}&scaleUpThreshold=@{parameters('scaleUpThreshold')}&scaleDownThreshold=@{parameters('scaleDownThreshold')}&sustainedMinutes=@{parameters('sustainedMinutes')}&currentSku=@{body('Parse_Capacity_Info')?['sku']?['name']}&scaleUpSku=@{parameters('scaleUpSku')}&scaleDownSku=@{parameters('scaleDownSku')}",
+                "authentication": {
+                  "type": "ManagedServiceIdentity"
+                }
+              },
+              "runAfter": {
+                "Parse_Capacity_Info": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Parse_Function_Response": {
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@body('Call_Function_Check_Metrics')",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "shouldScaleUp": {
+                      "type": "boolean"
+                    },
+                    "shouldScaleDown": {
+                      "type": "boolean"
+                    },
+                    "currentUtilization": {
+                      "type": "number"
+                    },
+                    "currentSku": {
+                      "type": "string"
+                    },
+                    "scaleUpSku": {
+                      "type": "string"
+                    },
+                    "scaleDownSku": {
+                      "type": "string"
+                    },
+                    "sustainedHighCount": {
+                      "type": "integer"
+                    },
+                    "sustainedLowCount": {
+                      "type": "integer"
+                    },
+                    "metrics": {
+                      "type": "object"
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "Call_Function_Check_Metrics": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Check_Scale_Up_Condition": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@body('Parse_Function_Response')?['shouldScaleUp']",
+                      true
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Scale_Up": {
+                  "type": "Http",
+                  "inputs": {
+                    "method": "PATCH",
+                    "uri": "https://management.azure.com/subscriptions/@{parameters('subscriptionId')}/resourceGroups/@{parameters('resourceGroup')}/providers/Microsoft.Fabric/capacities/@{parameters('fabricCapacityName')}?api-version=2023-11-01",
+                    "authentication": {
+                      "type": "ManagedServiceIdentity"
+                    },
+                    "headers": {
+                      "Content-Type": "application/json"
+                    },
+                    "body": {
+                      "sku": {
+                        "name": "@parameters('scaleUpSku')"
+                      }
+                    }
+                  }
+                },
+                "Send_Email_Scale_Up": {
+                  "type": "ApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connection": {
+                        "name": "@parameters('$connections')['office365']['connectionId']"
+                      }
+                    },
+                    "method": "POST",
+                    "path": "/v2/Mail",
+                    "body": {
+                      "To": "@parameters('notificationEmail')",
+                      "Subject": "Fabric Capacity Scaled Up",
+                      "Body": "<p>Capacity <strong>@{parameters('fabricCapacityName')}</strong> scaled up to <strong>@{parameters('scaleUpSku')}</strong> due to sustained high utilization.</p><p>Previous SKU: @{body('Parse_Function_Response')?['currentSku']}</p><p>Current Utilization: @{body('Parse_Function_Response')?['currentUtilization']}%</p><p>Average Utilization (last @{parameters('sustainedMinutes')} min): @{body('Parse_Function_Response')?['metrics']?['averageUtilization']}%</p><p>High utilization records: @{body('Parse_Function_Response')?['sustainedHighCount']}</p><p>Time: @{utcNow()}</p>"
+                    }
+                  },
+                  "runAfter": {
+                    "Scale_Up": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Check_Scale_Down_Condition": {
+                    "type": "If",
+                    "expression": {
+                      "and": [
+                        {
+                          "equals": [
+                            "@body('Parse_Function_Response')?['shouldScaleDown']",
+                            true
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "Scale_Down": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "PATCH",
+                          "uri": "https://management.azure.com/subscriptions/@{parameters('subscriptionId')}/resourceGroups/@{parameters('resourceGroup')}/providers/Microsoft.Fabric/capacities/@{parameters('fabricCapacityName')}?api-version=2023-11-01",
+                          "authentication": {
+                            "type": "ManagedServiceIdentity"
+                          },
+                          "headers": {
+                            "Content-Type": "application/json"
+                          },
+                          "body": {
+                            "sku": {
+                              "name": "@parameters('scaleDownSku')"
+                            }
+                          }
+                        }
+                      },
+                      "Send_Email_Scale_Down": {
+                        "type": "ApiConnection",
+                        "inputs": {
+                          "host": {
+                            "connection": {
+                              "name": "@parameters('$connections')['office365']['connectionId']"
+                            }
+                          },
+                          "method": "POST",
+                          "path": "/v2/Mail",
+                          "body": {
+                            "To": "@parameters('notificationEmail')",
+                            "Subject": "Fabric Capacity Scaled Down",
+                            "Body": "<p>Capacity <strong>@{parameters('fabricCapacityName')}</strong> scaled down to <strong>@{parameters('scaleDownSku')}</strong> due to sustained low utilization.</p><p>Previous SKU: @{body('Parse_Function_Response')?['currentSku']}</p><p>Current Utilization: @{body('Parse_Function_Response')?['currentUtilization']}%</p><p>Average Utilization (last @{parameters('sustainedMinutes')} min): @{body('Parse_Function_Response')?['metrics']?['averageUtilization']}%</p><p>Low utilization records: @{body('Parse_Function_Response')?['sustainedLowCount']}</p><p>Time: @{utcNow()}</p>"
+                          }
+                        },
+                        "runAfter": {
+                          "Scale_Down": [
+                            "Succeeded"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "runAfter": {
+                "Parse_Function_Response": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "triggers": {
+            "Recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Minute",
+                "interval": 5
+              }
+            }
+          },
+          "parameters": {
+            "$connections": {
+              "defaultValue": {},
+              "type": "Object"
+            },
+            "subscriptionId": {
+              "defaultValue": "[parameters('subscriptionId')]",
+              "type": "String"
+            },
+            "resourceGroup": {
+              "defaultValue": "[parameters('resourceGroup')]",
+              "type": "String"
+            },
+            "fabricCapacityName": {
+              "defaultValue": "[parameters('fabricCapacityName')]",
+              "type": "String"
+            },
+            "fabricWorkspaceId": {
+              "defaultValue": "[parameters('fabricWorkspaceId')]",
+              "type": "String"
+            },
+            "notificationEmail": {
+              "defaultValue": "[parameters('notificationEmail')]",
+              "type": "String"
+            },
+            "scaleUpSku": {
+              "defaultValue": "[parameters('scaleUpSku')]",
+              "type": "String"
+            },
+            "scaleDownSku": {
+              "defaultValue": "[parameters('scaleDownSku')]",
+              "type": "String"
+            },
+            "scaleUpThreshold": {
+              "defaultValue": "[parameters('scaleUpThreshold')]",
+              "type": "Int"
+            },
+            "scaleDownThreshold": {
+              "defaultValue": "[parameters('scaleDownThreshold')]",
+              "type": "Int"
+            },
+            "sustainedMinutes": {
+              "defaultValue": "[parameters('sustainedMinutes')]",
+              "type": "Int"
+            },
+            "functionAppName": {
+              "defaultValue": "[parameters('functionAppName')]",
+              "type": "String"
+            }
+          },
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "office365": {
+                "connectionId": "[variables('office365ConnectionId')]",
+                "connectionName": "[variables('office365ConnectionName')]",
+                "id": "[concat('/subscriptions/', parameters('subscriptionId'), '/providers/Microsoft.Web/locations/', parameters('location'), '/managedApis/office365')]"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), resourceId('Microsoft.Web/sites', parameters('functionAppName')), 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+      "scope": "[concat('Microsoft.Storage/storageAccounts', '/', parameters('storageAccountName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+      ],
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2022-03-01', 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), resourceId('Microsoft.Web/sites', parameters('functionAppName')), '974c5e8b-45b9-4653-ba55-5f855dd0fb88')]",
+      "scope": "[concat('Microsoft.Storage/storageAccounts', '/', parameters('storageAccountName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+      ],
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')]",
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2022-03-01', 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), resourceId('Microsoft.Web/sites', parameters('functionAppName')), '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')]",
+      "scope": "[concat('Microsoft.Storage/storageAccounts', '/', parameters('storageAccountName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+      ],
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')]",
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2022-03-01', 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      }
+    }
+  ],
+  "outputs": {
+    "logicAppName": {
+      "type": "string",
+      "value": "[parameters('logicAppName')]"
+    },
+    "logicAppResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Logic/workflows', parameters('logicAppName'))]"
+    },
+    "logicAppPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Logic/workflows', parameters('logicAppName')), '2019-05-01', 'Full').identity.principalId]"
+    },
+    "functionAppName": {
+      "type": "string",
+      "value": "[parameters('functionAppName')]"
+    },
+    "functionAppPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2022-03-01', 'Full').identity.principalId]"
+    },
+    "office365ConnectionName": {
+      "type": "string",
+      "value": "[variables('office365ConnectionName')]"
+    },
+    "appInsightsInstrumentationKey": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/components', parameters('appInsightsName')), '2020-02-02').InstrumentationKey]"
+    },
+    "nextSteps": {
+      "type": "string",
+      "value": "Deployment complete! Function App will automatically download code from GitHub. Wait 2-3 minutes, then: 1) Authorize Office 365 connection, 2) Assign Logic App Contributor role to Fabric capacity, 3) Assign Function App access to Fabric workspace. See DEPLOYMENT-GUIDE.md for details."
+    }
+  }
+}

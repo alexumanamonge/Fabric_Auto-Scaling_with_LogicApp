@@ -1,524 +1,391 @@
-# Fabric Auto-Scaling Deployment Guide
+# Deployment Guide - Fabric Auto-Scale Logic App
 
-## Table of Contents
-1. [Prerequisites](#prerequisites)
-2. [Pre-Deployment Setup](#pre-deployment-setup)
-3. [Deployment Methods](#deployment-methods)
-4. [Post-Deployment Configuration](#post-deployment-configuration)
-5. [Verification](#verification)
-6. [Troubleshooting](#troubleshooting)
+## Quick Start (5 Minutes)
 
----
-
-## Prerequisites
-
-### Required Software
-- **GitHub Account** - Required to fork the repository
-- **Azure CLI** 2.50.0 or later (optional, for command-line deployment)
-- **Git** (optional, for local repository management)
-
-### Required Azure Resources
-- **Azure Subscription** with active Fabric capacity
-- **Microsoft Fabric Capacity** (F2, F4, F8, F16, F32, F64, F128, etc.)
-- **Fabric Workspace** with Capacity Metrics App installed
-- **Office 365** account for email notifications
-
-### Required Permissions
-- **Contributor** or **Owner** role on the Resource Group
-- **Fabric Administrator** or workspace access to install Capacity Metrics App
-- Ability to grant role assignments on Fabric capacity
+### Prerequisites Checklist
+- [ ] Microsoft Fabric capacity (know the name, resource group, subscription)
+- [ ] Power BI workspace with **Microsoft Fabric Capacity Metrics** app installed
+- [ ] Workspace ID (from URL: `https://app.powerbi.com/groups/{workspace-id}/...`)
+- [ ] Azure subscription with Contributor access
+- [ ] Office 365 email account
 
 ---
 
-## Pre-Deployment Setup
+## Step 1: Deploy the Template
 
-The solution depends on the **Microsoft Fabric Capacity Metrics App** for accurate utilization data.
-
-1. **Navigate to Your Fabric Workspace**:
-   - Go to [Power BI Portal](https://app.powerbi.com) or [Fabric Portal](https://app.fabric.microsoft.com)
-   - Select or create a workspace
-
-2. **Install Capacity Metrics App**:
-   - In the workspace, click **+ New** → **More options**
-   - Search for **"Microsoft Fabric Capacity Metrics"** in AppSource
-   - Click **Get it now** and follow installation prompts
-   - Configure it to monitor your target Fabric capacity
-
-3. **Note the Workspace ID**:
-   - Go to workspace **Settings**
-   - Copy the **Workspace ID** (GUID format: `12345678-1234-1234-1234-123456789abc`)
-   - You'll need this during deployment
-
-### 4. Prepare Deployment Parameters
-
-Gather the following information:
-
-| Parameter | Example | How to Find |
-|-----------|---------|-------------|
-| Resource Group Name | `rg-fabric-autoscale` | Create new or use existing |
-| Fabric Capacity Name | `MyFabricCapacity` | Azure Portal → Fabric Capacities |
-| Workspace ID | `12345678-...` | Workspace Settings |
-| Notification Email | `admin@company.com` | Your email address |
-| Scale Up SKU | `F128` | Target SKU for scale up |
-| Scale Down SKU | `F64` | Target SKU for scale down |
-| Location | `eastus` | Azure region (same as capacity) |
-
----
-
-## Pre-Deployment Setup
-
-### 1. Fork This Repository
-
-**This is a required step before deployment:**
-
-1. **Go to the repository**: https://github.com/alexumanamonge/Fabric_Auto-Scaling_with_LogicApp
-2. **Click the Fork button** at the top right
-3. **Select your GitHub account** as the destination
-4. **Wait for fork to complete**
-
-> **Why fork?** The Function App downloads code from GitHub during deployment. Forking gives you full control over the code, allows customization, and ensures your deployment won't be affected by changes to the original repository.
-
-### 2. Update ARM Template (In Your Fork)
-
-After forking, update the template to use your fork:
-
-1. **Navigate to your fork** on GitHub
-2. **Open** `Templates/fabric-autoscale-template.json`
-3. **Click the edit button** (pencil icon)
-4. **Find line ~200** with `WEBSITE_RUN_FROM_PACKAGE`
-5. **Replace** the URL:
-   ```json
-   "value": "https://github.com/YOUR-USERNAME/Fabric_Auto-Scaling_with_LogicApp/raw/master/Releases/functionapp.zip"
-   ```
-   Replace `YOUR-USERNAME` with your actual GitHub username
-6. **Commit the change** directly to master
-
-### 3. Install Fabric Capacity Metrics App
-
-## Deployment Methods
-
-### Method 1: Azure Portal - One-Click Deployment (Recommended)
-
-**✨ Fully automated deployment from your fork!**
-
-**Prerequisites:** You must have completed the fork and ARM template update steps above.
-
-Click to deploy (replace `YOUR-USERNAME` with your GitHub username):
-
-```
-https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FYOUR-USERNAME%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json
-```
-
-Or create a custom deploy button in your fork's README:
-
-```markdown
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FYOUR-USERNAME%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json)
-```
-
-**Fill in the parameters:**
-- **Subscription**: Select your Azure subscription
-- **Resource Group**: Create new or select existing
-- **Region**: Choose same region as your Fabric capacity
-- **Fabric Capacity Name**: Enter your capacity name
-- **Fabric Workspace ID**: Enter workspace GUID  
-- **Notification Email**: Enter your email
-- **Scale Up/Down SKUs**: Configure target SKUs
-- **Thresholds**: Set utilization percentages
-
-Click **Review + create** → **Create**
-
-**⏱️ Deployment time:** ~3-5 minutes
-
-**What happens automatically:**
-- ✅ All Azure resources created
-- ✅ Function code downloaded from **your GitHub fork**
-- ✅ Managed identity configured
-- ✅ All role assignments set up
-
-> **🔒 Security Benefit:** The code runs from your fork, giving you complete control and isolation from the original repository.
-
----
-
-### Method 2: PowerShell Script (For Automation)
-
-For automated deployment in CI/CD pipelines:
+### Option A: PowerShell (Recommended)
 
 ```powershell
-# Login to Azure
-az login
+# Clone or download this repository
+git clone https://github.com/YOUR_USERNAME/Fabric-AutoScale-LogicApp.git
+cd Fabric-AutoScale-LogicApp/Scripts
 
-# Run deployment script
-.\Scripts\deploy-logicapp.ps1 `
-  -ResourceGroup "rg-fabric-autoscale" `
-  -CapacityName "MyFabricCapacity" `
-  -WorkspaceId "12345678-1234-1234-1234-123456789abc" `
-  -Email "admin@company.com" `
-  -Location "eastus" `
-  -ScaleUpSku "F128" `
-  -ScaleDownSku "F64" `
-  -ScaleUpThreshold 80 `
-  -ScaleDownThreshold 40 `
-  -SustainedMinutes 15
+# Run deployment
+.\deploy-logicapp.ps1 `
+    -ResourceGroupName "rg-fabricautoscale" `
+    -FabricCapacityName "my-fabric-capacity" `
+    -FabricResourceGroup "rg-fabric-prod" `
+    -FabricWorkspaceId "12345678-1234-1234-1234-123456789abc" `
+    -EmailRecipient "admin@company.com" `
+    -Location "eastus"
 ```
 
-**What the script does:**
-- Deploys ARM template with all resources
-- Function code automatically downloaded from GitHub
-
-### Method 3: Bash Script (Linux/Mac/Cloud Shell)
-
-```bash
-# Login to Azure
-az login
-
-# Make script executable
-chmod +x Scripts/deploy-logicapp.sh
-
-# Run deployment script
-./Scripts/deploy-logicapp.sh \
-  -g "rg-fabric-autoscale" \
-  -c "MyFabricCapacity" \
-  -w "12345678-1234-1234-1234-123456789abc" \
-  -e "admin@company.com" \
-  -l "eastus" \
-  -u "F128" \
-  -d "F64" \
-  -s 15
+**Expected Output:**
+```
+✓ Deployment successful!
+Logic App Name: fabricautoscale-xyz123
+Managed Identity Principal ID: abc-def-ghi-123
 ```
 
-**What the script does:**
-- Deploys ARM template with all resources
-- Function code automatically downloaded from GitHub
-
-### Method 4: Manual Azure CLI
+### Option B: Azure CLI
 
 ```bash
-# Create resource group (if needed)
-az group create \
-  --name rg-fabric-autoscale \
-  --location eastus
+cd Fabric-AutoScale-LogicApp
 
-# Deploy ARM template
 az deployment group create \
-  --resource-group rg-fabric-autoscale \
+  --resource-group rg-fabricautoscale \
   --template-file Templates/fabric-autoscale-template.json \
   --parameters \
-    fabricCapacityName="MyFabricCapacity" \
+    fabricCapacityName="my-fabric-capacity" \
+    fabricResourceGroup="rg-fabric-prod" \
     fabricWorkspaceId="12345678-1234-1234-1234-123456789abc" \
-    notificationEmail="admin@company.com" \
-    scaleUpSku="F128" \
-    scaleDownSku="F64" \
-    scaleUpThreshold=80 \
-    scaleDownThreshold=40 \
-    sustainedMinutes=15
+    emailRecipient="admin@company.com"
 ```
 
-Function code is automatically downloaded from GitHub during deployment.
+### Option C: Azure Portal
+
+1. Go to **Azure Portal** > **Create a resource** > **Template deployment**
+2. Click **Build your own template in the editor**
+3. Copy/paste contents of `Templates/fabric-autoscale-template.json`
+4. Click **Save**
+5. Fill in parameters:
+   - **Fabric Capacity Name**: Your capacity name
+   - **Fabric Resource Group**: RG containing the capacity
+   - **Fabric Workspace ID**: From Power BI workspace URL
+   - **Email Recipient**: Your email
+   - **Scale Up SKU**: F128 (or your choice)
+   - **Scale Down SKU**: F64 (or your choice)
+6. Click **Review + create** > **Create**
 
 ---
 
-## Post-Deployment Configuration
+## Step 2: Post-Deployment Configuration (REQUIRED)
 
-### Step 1: Verify Function App Deployment
+### 2.1 Authorize Office 365 Connection
 
-Wait 2-3 minutes after ARM deployment completes, then verify the function was deployed:
+**Why:** The Logic App needs permission to send emails on your behalf.
 
-```bash
-# List functions
-az functionapp function list \
-  --resource-group rg-fabric-autoscale \
-  --name func-fabricscale-xxxxx \
-  --query "[].name" -o table
-```
-
-You should see `CheckCapacityMetrics` in the list.
-
-**If the function is not showing:**
-1. Wait another 2-3 minutes for automatic download and deployment
-2. Check the Function App logs in Azure Portal
-3. Restart the Function App:
-   ```bash
-   az functionapp restart --resource-group rg-fabric-autoscale --name func-fabricscale-xxxxx
-   ```
-
-### Step 2: Authorize Office 365 Connection
-
-1. Go to **Azure Portal**
-2. Navigate to **Resource Groups** → Select your resource group
-3. Find the **API Connection** resource (name: `office365-FabricAutoScaleLogicApp`)
-4. Click **Edit API connection**
-5. Click **Authorize**
-6. Sign in with your **Office 365 account**
+1. Go to **Azure Portal** > Navigate to your resource group
+2. Find the resource named **office365-{logicAppName}** (Type: API Connection)
+3. Click on it
+4. Click **Edit API connection** (left menu)
+5. Click the **Authorize** button
+6. Sign in with your **Office 365 account** (the one that will send emails)
 7. Click **Save**
 
-### Step 3: Assign Permissions to Logic App
+**✅ Success indicator:** The connection status shows a green checkmark.
 
-The Logic App needs **Contributor** access to scale the Fabric capacity.
+### 2.2 Assign Fabric Capacity Permissions
 
-**Get Principal ID from deployment output** or run:
+**Why:** The Logic App's managed identity needs Contributor role to scale the capacity.
+
+#### Method 1: Azure Portal (GUI)
+
+1. Go to **Azure Portal** > Navigate to your **Fabric capacity** resource
+2. Click **Access control (IAM)** (left menu)
+3. Click **+ Add** > **Add role assignment**
+4. **Role tab:**
+   - Select **Contributor**
+   - Click **Next**
+5. **Members tab:**
+   - Select **Managed identity**
+   - Click **+ Select members**
+   - **Subscription:** Your subscription
+   - **Managed identity:** Logic App
+   - Select your Logic App (named `fabricautoscale-*`)
+   - Click **Select**
+   - Click **Next**
+6. Click **Review + assign**
+
+#### Method 2: Azure CLI (Scripted)
+
 ```bash
-LOGIC_APP_PRINCIPAL_ID=$(az deployment group show \
-  --resource-group rg-fabric-autoscale \
-  --name fabric-autoscale-template \
-  --query properties.outputs.logicAppPrincipalId.value -o tsv)
+# Get the Logic App's principal ID from deployment output
+PRINCIPAL_ID="<from-deployment-output>"
 
-echo "Logic App Principal ID: $LOGIC_APP_PRINCIPAL_ID"
-```
+# Or retrieve it
+PRINCIPAL_ID=$(az logicapp show \
+  --resource-group rg-fabricautoscale \
+  --name fabricautoscale-xyz123 \
+  --query identity.principalId -o tsv)
 
-**Assign Contributor role**:
-```bash
+# Assign Contributor role on the Fabric capacity
 az role assignment create \
-  --assignee $LOGIC_APP_PRINCIPAL_ID \
+  --assignee $PRINCIPAL_ID \
   --role Contributor \
-  --scope /subscriptions/<SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP>/providers/Microsoft.Fabric/capacities/MyFabricCapacity
+  --scope /subscriptions/<subscription-id>/resourceGroups/<fabric-rg>/providers/Microsoft.Fabric/capacities/<capacity-name>
 ```
 
-**Verify assignment**:
-```bash
-az role assignment list \
-  --assignee $LOGIC_APP_PRINCIPAL_ID \
-  --output table
-```
+**✅ Success indicator:** Command completes without errors.
 
-### Step 4: Assign Permissions to Function App
+### 2.3 Grant Power BI API Permissions
 
-The Function App needs access to the Fabric workspace to query Capacity Metrics App.
+**Why:** The Logic App needs to read capacity metrics from the Power BI dataset.
 
-> **✅ Storage Authentication**: The Function App uses **managed identity** for storage access. The ARM template automatically assigns the required roles (Storage Blob Data Owner, Storage Queue Data Contributor, Storage Table Data Contributor). Function code is deployed via `WEBSITE_RUN_FROM_PACKAGE` from your storage account.
+1. Go to **Azure Portal** > **Azure Active Directory**
+2. Click **Enterprise applications** (left menu)
+3. **Remove all filters** (click the X next to "Application type == Enterprise Applications")
+4. In the search box, paste the **Principal ID** from deployment output
+5. Click on the matching application
+6. Click **Permissions** (left menu under Security)
+7. Click **+ Add a permission**
+8. Click **APIs my organization uses**
+9. Search for **Power BI Service**
+10. Click **Application permissions** (NOT Delegated)
+11. Check these permissions:
+    - ✅ **Dataset.Read.All**
+    - ✅ **Workspace.Read.All**
+12. Click **Add permissions**
+13. Click **Grant admin consent for {your-tenant}**
+14. Confirm by clicking **Yes**
 
-**Get Principal ID**:
-```bash
-FUNCTION_APP_PRINCIPAL_ID=$(az deployment group show \
-  --resource-group rg-fabric-autoscale \
-  --name fabric-autoscale-template \
-  --query properties.outputs.functionAppPrincipalId.value -o tsv)
-
-echo "Function App Principal ID: $FUNCTION_APP_PRINCIPAL_ID"
-```
-
-**Grant workspace access** (choose one method):
-
-**Method A: Via Power BI/Fabric Portal** (Recommended)
-1. Go to your Fabric workspace
-2. Click **Workspace settings** → **Manage access**
-3. Click **+ Add people or groups**
-4. Search for the Function App's Managed Identity (use Principal ID)
-5. Assign **Viewer** or **Contributor** role
-6. Click **Add**
-
-**Method B: Via Power BI Admin Portal**
-1. Go to [Power BI Admin Portal](https://app.powerbi.com/admin-portal)
-2. Navigate to **Tenant settings** → **Developer settings**
-3. Enable **Service principals can access Power BI APIs**
-4. Add the Function App Principal ID to allowed list
-
-### Step 5: Enable Logic App
-
-1. Go to **Azure Portal** → **Resource Groups** → **Logic App**
-2. Click **Enable** (if not already enabled)
-3. Click **Overview** → **Trigger history** to verify it's running
+**✅ Success indicator:** Permissions show "Granted for {your-tenant}" in green.
 
 ---
 
-## Verification
+## Step 3: Verify Deployment
 
-### 1. Test Function App
+### 3.1 Check Logic App Run History
 
-Test the Function App directly:
+1. Go to **Azure Portal** > Your resource group > Logic App resource
+2. Click **Overview** (left menu)
+3. Wait 5 minutes (the recurrence trigger interval)
+4. Click **Refresh** to see new runs
+5. Click on the most recent run
+6. Expand each action to see:
+   - ✅ **Get_Current_Capacity_Info**: Should show your capacity details
+   - ✅ **Query_Capacity_Metrics**: Should return utilization data
+   - ✅ **For_Each_Metric_Row**: Should loop through data points
 
-```bash
-# Get Function App URL
-FUNCTION_APP_NAME="func-fabricscale-xxxxx"
+**Expected Result:** All actions show green checkmarks (succeeded).
 
-# Call the function (replace with your values)
-curl "https://$FUNCTION_APP_NAME.azurewebsites.net/api/CheckCapacityMetrics?code=<FUNCTION_KEY>&capacityName=MyFabricCapacity&workspaceId=12345678-1234-1234-1234-123456789abc&currentSku=F64&scaleUpSku=F128&scaleDownSku=F32"
-```
+### 3.2 Verify Metrics Query
 
-Expected response:
+In the run history, expand **Query_Capacity_Metrics** action:
+
+**Output should look like:**
 ```json
 {
-  "shouldScaleUp": false,
-  "shouldScaleDown": false,
-  "currentUtilization": 65.5,
-  "sustainedHighCount": 2,
-  "metrics": { ... }
+  "results": [
+    {
+      "tables": [
+        {
+          "rows": [
+            ["2024-01-15T10:15:00", 45.2],
+            ["2024-01-15T10:10:00", 43.8],
+            ["2024-01-15T10:05:00", 47.1]
+          ]
+        }
+      ]
+    }
+  ]
 }
 ```
 
-### 2. Check Logic App Run History
-
-1. Go to **Azure Portal** → **Logic App** → **Runs history**
-2. Click on the most recent run
-3. Verify all actions succeeded
-4. Check **Call_Function_Check_Metrics** output
-
-### 3. Monitor Application Insights
-
-1. Go to **Azure Portal** → **Application Insights**
-2. Click **Live Metrics** to see real-time function executions
-3. Click **Logs** → Run query:
-   ```kusto
-   traces
-   | where timestamp > ago(1h)
-   | where message contains "Fabric Auto-Scale"
-   | order by timestamp desc
-   ```
+**Troubleshooting if empty:**
+- Dataset ID may be incorrect → See [Troubleshooting: Invalid Dataset ID](#invalid-dataset-id)
+- Capacity Metrics App may not have data yet → Wait 24-48 hours after app installation
 
 ---
 
 ## Troubleshooting
 
-### Issue: Function App not showing after deployment
+### Invalid Dataset ID
 
-**Symptoms**: Function App exists but no functions are listed
+**Error:** `"Dataset 'CFafbeb4-7a8b-43d7-a3d3-0a8f8c6b0e85' not found"`
 
-**Solutions**:
-1. Wait 2-3 minutes for automatic deployment from GitHub to complete
-2. Check Function App configuration has `WEBSITE_RUN_FROM_PACKAGE` setting:
-   ```bash
-   az functionapp config appsettings list \
-     --resource-group rg-fabric-autoscale \
-     --name func-fabricscale-xxxxx \
-     --query "[?name=='WEBSITE_RUN_FROM_PACKAGE']"
+**Solution:**
+1. Go to **Power BI Service** > Your workspace
+2. Find **Microsoft Fabric Capacity Metrics** dataset
+3. Click **⋮** (More options) > **Settings**
+4. Copy the **Dataset ID** from the URL: `https://app.powerbi.com/groups/{workspace-id}/datasets/{dataset-id}/...`
+5. Go to **Azure Portal** > Logic App > **Logic app designer**
+6. Expand **Query_Capacity_Metrics** action
+7. In the URI field, replace the dataset ID:
    ```
-3. Restart the Function App:
-   ```bash
-   az functionapp restart --resource-group rg-fabric-autoscale --name func-fabricscale-xxxxx
+   https://api.powerbi.com/v1.0/myorg/groups/@{parameters('fabricWorkspaceId')}/datasets/YOUR-DATASET-ID/executeQueries
    ```
-4. Check Application Insights for deployment errors
+8. Click **Save**
 
-### Issue: Storage account access errors during deployment
+### Office 365 Connection Failed
 
-**Symptoms**: ARM deployment fails with "Creation of storage file share failed with: '(403) Forbidden'"
+**Error:** `"The API connection 'office365' is not authorized"`
 
-**Solutions**:
-1. Template uses **managed identity authentication** - no storage keys needed
-2. Verify no Azure policies are blocking role assignments
-3. Ensure `allowSharedKeyAccess` is not disabled by subscription policy
-4. If issue persists, delete partially created resources and redeploy
+**Solution:** Re-authorize the connection (see [Step 2.1](#21-authorize-office-365-connection))
 
-### Issue: Function returns "Failed to retrieve capacity metrics"
+### No Metrics Data Returned
 
-**Symptoms**: Function response has `error: "Failed to retrieve capacity metrics"`
+**Possible Causes:**
+1. **Capacity Metrics App not installed** → Install from Power BI AppSource
+2. **App installed recently** → Wait 24-48 hours for data collection
+3. **Capacity name mismatch** → Verify exact name (case-sensitive)
+4. **Wrong workspace ID** → Double-check from workspace URL
 
-**Solutions**:
-1. Verify Capacity Metrics App is installed in the workspace
-2. Check Function App Managed Identity has workspace access
-3. Verify Workspace ID is correct (GUID format)
-4. Check Application Insights logs for detailed error:
-   ```bash
-   az monitor app-insights query \
-     --app <APP_INSIGHTS_NAME> \
-     --analytics-query "traces | where message contains 'Error' | take 10"
-   ```
+### Scaling Not Happening
 
-### Issue: Logic App fails with "Unauthorized"
+**Checklist:**
+- [ ] At least 3 data points exceed threshold in sustained period
+- [ ] Current SKU is different from target SKU (won't scale if already at target)
+- [ ] Contributor role assigned on Fabric capacity
+- [ ] Check Logic App run history for condition evaluation results
 
-**Symptoms**: Logic App run fails at "Scale_Up" or "Scale_Down" action
+---
 
-**Solutions**:
-1. Verify Logic App Managed Identity has Contributor role on Fabric capacity
-2. Check role assignment:
-   ```bash
-   az role assignment list --assignee <LOGIC_APP_PRINCIPAL_ID>
-   ```
-3. Wait 5-10 minutes for role propagation
+## Configuration Reference
 
-### Issue: No email notifications received
+### Default Parameters
 
-**Symptoms**: Scaling occurs but no email is sent
+| Parameter | Default Value | Description |
+|-----------|---------------|-------------|
+| `scaleUpThreshold` | 80 | CPU % to trigger scale up |
+| `scaleDownThreshold` | 30 | CPU % to trigger scale down |
+| `scaleUpSku` | F128 | SKU to scale up to |
+| `scaleDownSku` | F64 | SKU to scale down to |
+| `sustainedMinutes` | 15 | Minutes threshold must be sustained |
+| `checkIntervalMinutes` | 5 | How often to check metrics |
 
-**Solutions**:
-1. Check Office 365 connection is authorized
-2. Verify email address is correct in parameters
-3. Check spam/junk folder
-4. Review Logic App run history for "Send_Email" action errors
+### Customizing Parameters
 
-### Issue: Function App shows "Dataset not found"
+**After deployment**, you can change parameters:
 
-**Symptoms**: Function logs show Power BI API error about missing dataset
+1. Go to **Logic App** > **Logic app designer**
+2. Click on any action that uses a parameter (e.g., **Check_Scale_Up_Condition**)
+3. Parameters are shown as `@parameters('scaleUpThreshold')`
+4. To change values:
+   - Go to **Logic App** > **Overview** > **JSON View** (top toolbar)
+   - Find the `"parameters"` section at the bottom
+   - Update the `"value"` fields
+   - Click **Save**
 
-**Solutions**:
-1. Verify Capacity Metrics App is properly installed and configured
-2. The dataset ID may be different - check in Power BI workspace
-3. Grant Function App Managed Identity access to the workspace
-4. Check Function App logs in Application Insights for specific error details
+**Or** redeploy with new parameter values.
 
-### Issue: Want to update Function App code
+### Available Fabric SKUs
 
-**Symptoms**: Need to deploy new version of Python code
+Valid values for `scaleUpSku` and `scaleDownSku`:
+- F2, F4, F8, F16, F32, F64, F128, F256, F512, F1024, F2048
 
-**Solutions**:
+**Note:** Can only scale between SKUs in the same family (Fabric F SKUs).
 
-**Option 1: Update via GitHub (Recommended)**
-1. Update code in the `FunctionApp` folder
-2. Create new zip: `Compress-Archive -Path FunctionApp\* -DestinationPath Releases\functionapp.zip -Force`
-3. Commit and push to GitHub
-4. Restart Function App (it will pull latest code automatically)
+---
 
-**Option 2: Manual Package Upload**
-1. Create zip of FunctionApp folder
-2. Upload to Azure Blob Storage
-3. Generate SAS token
-4. Update Function App setting:
-   ```bash
-   az functionapp config appsettings set \
-     --resource-group rg-fabric-autoscale \
-     --name func-fabricscale-xxxxx \
-     --settings "WEBSITE_RUN_FROM_PACKAGE=<YOUR_BLOB_URL_WITH_SAS>"
+## Monitoring
+
+### View Scaling History
+
+1. Go to **Logic App** > **Overview**
+2. Filter runs by **Status: Succeeded**
+3. Look for runs where scaling occurred:
+   - Expand **Send_ScaleUp_Email** or **Send_ScaleDown_Email** actions
+   - These only appear when scaling happened
+
+### Email Notifications
+
+After scaling, you'll receive an email:
+
+**Subject:** `Fabric Capacity Scaled UP - my-capacity`
+
+**Contents:**
+- Action: SCALED UP / SCALED DOWN
+- Previous SKU: F64
+- New SKU: F128
+- Trigger: 4 violations over 15 minutes
+- Average Utilization: 87.3%
+- Threshold: 80%
+- Timestamp: 2024-01-15 10:15:00 UTC
+
+### Application Insights
+
+Advanced monitoring:
+1. Go to **Application Insights** resource (in same resource group)
+2. Click **Logs** (left menu)
+3. Query example:
+   ```kql
+   requests
+   | where timestamp > ago(24h)
+   | summarize count() by name, resultCode
    ```
 
 ---
 
-## Advanced Configuration
+## Cost Optimization
 
-### Custom Thresholds
-Edit `fabric-autoscale-template.json` parameters section:
-```json
-"scaleUpThreshold": {
-  "defaultValue": 85  // Changed from 80
-},
-"scaleDownThreshold": {
-  "defaultValue": 30  // Changed from 40
-}
+**Current configuration:**
+- Check interval: 5 minutes
+- Monthly runs: 8,640 runs
+- Estimated cost: ~$89/month
+
+**To reduce costs:**
+
+1. **Increase check interval** to 10 minutes:
+   - Halves the number of runs
+   - Reduces cost to ~$45/month
+   - Trade-off: Slower response to capacity changes
+
+2. **Disable during off-hours:**
+   - Add a condition to the trigger
+   - Only run during business hours (e.g., 8am-6pm Mon-Fri)
+   - Can reduce costs by 60-70%
+
+---
+
+## Uninstall
+
+To remove all resources:
+
+```bash
+# Delete the resource group (removes everything)
+az group delete --name rg-fabricautoscale --yes --no-wait
+
+# Or delete individual resources
+az logic workflow delete --resource-group rg-fabricautoscale --name fabricautoscale-xyz123
 ```
 
-### Custom Recurrence Interval
-Edit Logic App trigger in template:
-```json
-"Recurrence": {
-  "type": "Recurrence",
-  "recurrence": {
-    "frequency": "Minute",
-    "interval": 10  // Changed from 5
-  }
-}
-```
-
-### Enable Application Insights Sampling
-Edit `FunctionApp/host.json`:
-```json
-{
-  "logging": {
-    "applicationInsights": {
-      "samplingSettings": {
-        "isEnabled": true,
-        "maxTelemetryItemsPerSecond": 5  // Reduce costs
-      }
-    }
-  }
-}
-```
+**Don't forget to:**
+- Remove role assignment from Fabric capacity (if resource group still exists)
+- Delete the Office 365 API connection
 
 ---
 
 ## Next Steps
 
-After successful deployment:
-1. Monitor Logic App runs for 24 hours
-2. Adjust thresholds if needed
-3. Review Application Insights for performance
-4. Set up alerts for failed runs
-5. Document your custom configuration
+1. ✅ Monitor run history for 24 hours
+2. ✅ Verify scaling works during high load
+3. ✅ Adjust thresholds based on your workload patterns
+4. ✅ Consider adding more SKU tiers for granular scaling
+5. ✅ Set up alerts in Application Insights for failures
 
-For more details, see [TESTING-GUIDE.md](TESTING-GUIDE.md).
+---
+
+## Support
+
+**Issues:**
+- GitHub Issues: [Create an issue](https://github.com/YOUR_USERNAME/Fabric-AutoScale-LogicApp/issues)
+- Documentation: See README.md and ARCHITECTURE-CHANGE.md
+
+**Common Questions:**
+
+**Q: How long after high load will scaling occur?**  
+A: Minimum 15 minutes (default sustained period) + up to 5 minutes (check interval) = 15-20 minutes total.
+
+**Q: Will it scale down immediately when load drops?**  
+A: No, same sustained logic applies. Must stay below threshold for 15 minutes with ≥3 violations.
+
+**Q: Can I scale multiple capacities?**  
+A: Currently, each deployment monitors one capacity. Deploy multiple Logic Apps for multiple capacities.
+
+**Q: What if I need to pause auto-scaling?**  
+A: Disable the Logic App: Azure Portal > Logic App > Overview > **Disable** button.
+
+---
+
+**Deployment complete! Your Fabric capacity will now auto-scale based on utilization. 🚀**
