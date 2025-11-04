@@ -42,31 +42,34 @@ Deploy the complete solution with a single click - **no manual steps, no scripts
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexumanamonge%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json)
 
 **What happens automatically:**
-- ✅ Azure Function App created
-- ✅ Function code downloaded from GitHub and deployed
-- ✅ Azure Logic App with workflow configured
-- ✅ Storage Account with managed identity auth
-- ✅ Application Insights for monitoring
-- ✅ Azure AD authentication enabled on Function App
-- ✅ All role assignments configured
-- ✅ Function code downloaded and deployed from GitHub
+- ✅ Creates all Azure resources (Function App, Logic App, Storage, App Insights)
+- ✅ Downloads function code from GitHub to your storage account
+- ✅ Deploys function code to Function App from your storage
+- ✅ Configures managed identity and Azure AD authentication
+- ✅ Sets up all role assignments
 
 **Deployment time:** 5-10 minutes
 
+> **🔐 Deployment Isolation:** Function code is stored in **your** storage account, so your deployment won't be affected by future updates to this repository unless you choose to redeploy.
+
 ---
 
-### 🔒 For Production: Fork First
+### � Optional: Fork for Customization
 
-**Recommended for production deployments** to isolate your solution from future updates:
+**Fork this repository if you want to:**
+- ✏️ Customize the function code for your specific requirements
+- 🔨 Modify ARM template parameters or resources
+- 📋 Meet organizational policies requiring forked repositories
 
-1. **Fork this repository** (click Fork button on GitHub)
-2. **Deploy from your fork** using the Deploy to Azure button in your forked README
-3. Your deployment is now isolated - you control when to pull updates
+**How to fork and deploy:**
+1. Click the **Fork** button on GitHub
+2. Update the deployment script URL in `Templates/fabric-autoscale-template.json` (line ~666) to point to your fork:
+   ```
+   'https://github.com/YOUR-USERNAME/Fabric_Auto-Scaling_with_LogicApp/raw/master/Releases/functionapp.zip'
+   ```
+3. Deploy using the button from your forked repository's README
 
-**Why fork?**
-- Prevents breaking changes from affecting your production
-- You control version updates
-- You can customize for your specific needs
+> **Note:** Even without forking, your deployment is isolated since the code runs from your storage account, not GitHub.
 
 ---
 

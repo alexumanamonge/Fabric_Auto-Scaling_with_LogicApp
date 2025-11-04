@@ -70,7 +70,12 @@ Gather the following information:
 
 ### 3. Optional: Fork the Repository
 
-**Recommended for production** to isolate your deployment from future updates. Just fork on GitHub - no cloning needed!
+**Fork only if you need to customize the code or ARM template.**
+
+Your deployment is automatically isolated since function code runs from your storage account, not GitHub. Forking is useful for:
+- Customizing Python function code
+- Modifying ARM template resources
+- Meeting organizational repository policies
 
 ---
 
@@ -80,26 +85,22 @@ Gather the following information:
 
 **✅ Truly one-click! Infrastructure AND code deployed automatically.**
 
-The ARM template uses Azure Deployment Scripts to automatically:
+The ARM template uses Azure Deployment Scripts to:
 - ✅ Create all Azure resources (Function App, Logic App, Storage, App Insights)
-- ✅ Configure Managed Identity and Azure AD authentication
-- ✅ Download Function App code from GitHub
-- ✅ Deploy code to Function App via blob storage
+- ✅ Download function code from GitHub to **your storage account**
+- ✅ Deploy code to Function App (runs from your storage)
+- ✅ Configure managed identity and Azure AD authentication
 - ✅ Set up all role assignments
 
-#### For Production (Use Your Fork)
+**🔐 Deployment Isolation:** Your deployment is protected - function code lives in your storage account and won't change unless you redeploy.
 
-1. **Fork this repository first** (click Fork button on GitHub)
-2. Deploy using the button from **your forked repository's README**
-3. Fill in the parameters and deploy
+#### Standard Deployment
 
-#### For Testing/Evaluation (Quick Deploy)
-
-Click to deploy from main repository:
+Click to deploy:
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexumanamonge%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json)
 
-**Deployment Parameters:**
+**Fill in the parameters:**
 - **Subscription**: Select your Azure subscription
 - **Resource Group**: Create new or select existing
 - **Region**: Choose same region as your Fabric capacity
@@ -109,11 +110,21 @@ Click to deploy from main repository:
 - **Scale Up/Down SKUs**: Configure target SKUs
 - **Thresholds**: Set utilization percentages
 
-3. Click **Review + create** → **Create**
+Click **Review + create** → **Create** → Wait 5-10 minutes
 
-4. **Wait for deployment to complete** (typically 5-10 minutes)
+**That's it!** Everything is deployed and ready.
 
-> **✅ Done!** The ARM template automatically deploys all resources INCLUDING the Python Function App code from GitHub. No additional deployment steps required!
+#### Custom Deployment (Using Your Fork)
+
+If you forked the repository to customize:
+
+1. Update the deployment script URL in your fork's `Templates/fabric-autoscale-template.json` (line ~666):
+   ```
+   'https://github.com/YOUR-USERNAME/Fabric_Auto-Scaling_with_LogicApp/raw/master/Releases/functionapp.zip'
+   ```
+2. Deploy using the button from your forked repository's README
+
+---
 
 ### Method 2: PowerShell Script (For Automation)
 
