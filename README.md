@@ -17,6 +17,8 @@ The architecture ensures that scaling only occurs when utilization thresholds ar
 
 ## Key Features
 
+- 🚀 **One-Click Deployment**: Complete infrastructure AND code deployment via single ARM template - no manual steps required
+
 - 🎯 **Intelligent Sustained Threshold Detection**: Only scales when utilization stays above/below thresholds for a configurable duration
 
 - 📊 **Native Fabric Metrics Integration**: Queries official Fabric Capacity Metrics App via Power BI REST API
@@ -35,9 +37,11 @@ The architecture ensures that scaling only occurs when utilization thresholds ar
 
 ### Quick Deploy
 
-Click the "Deploy to Azure" to quickly deploy the infrastructure to your Azure subscription.
+Click the "Deploy to Azure" button to deploy the **complete solution** including Function App code in one step.
 
  [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Falexumanamonge%2FFabric_Auto-Scaling_with_LogicApp%2Fmaster%2FTemplates%2Ffabric-autoscale-template.json)
+
+> **✅ Fully Automated**: The ARM template automatically deploys the Function App Python code from GitHub. No manual code deployment required!
 
 ### Full Instructions
 

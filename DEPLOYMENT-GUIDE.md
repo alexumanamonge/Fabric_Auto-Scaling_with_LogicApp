@@ -175,75 +175,29 @@ func azure functionapp publish <FUNCTION_APP_NAME> --python
 
 After deployment completes, you **must** perform these steps:
 
-### Step 1: Deploy Function App Code
+> **✅ Good News**: The Function App code is now **automatically deployed** via the ARM template! No manual code deployment is needed.
 
-The ARM template creates the Function App infrastructure, but the Python code must be deployed separately.
+### Step 1: Verify Function App Deployment
 
-> **Important**: The Function App is configured to support zip deployment via Kudu API, which is the most reliable method.
-
-**Option A: Using Deployment Script (Recommended)**
-
-We provide scripts that handle the deployment automatically:
-
-**PowerShell:**
-```powershell
-.\Scripts\deploy-function-code.ps1 `
-  -ResourceGroup "rg-fabric-autoscale" `
-  -FunctionAppName "func-fabricscale-xxxxx"
-```
-
-**Bash:**
-```bash
-./Scripts/deploy-function-code.sh \
-  -g rg-fabric-autoscale \
-  -n func-fabricscale-xxxxx
-```
-
-**Option B: Using Kudu Web UI (No CLI Required)**
-
-1. Get your Function App name from the deployment output
-2. Open browser: `https://YOUR-FUNCTION-APP-NAME.scm.azurewebsites.net`
-3. Click **Tools** → **Zip Push Deploy**
-4. Create a zip file of the `FunctionApp` folder contents
-5. Drag and drop the zip file to the deployment area
-6. Wait for "Deployment successful" message
-
-**Option C: Using Azure CLI (From Cloud Shell)**
+The ARM template automatically deploys the Python code from GitHub. Verify it worked:
 
 ```bash
-# Navigate to FunctionApp directory
-cd FunctionApp
-
-# Create zip package
-zip -r ../functionapp.zip .
-
-# Get publishing credentials and deploy via Kudu API
-RESOURCE_GROUP="rg-fabric-autoscale"
-FUNCTION_APP_NAME="func-fabricscale-xxxxx"
-
-CREDS=$(az functionapp deployment list-publishing-credentials \
-  --resource-group $RESOURCE_GROUP \
-  --name $FUNCTION_APP_NAME \
-  --query "{username:publishingUserName, password:publishingPassword}" -o json)
-
-USERNAME=$(echo $CREDS | jq -r .username)
-PASSWORD=$(echo $CREDS | jq -r .password)
-
-curl -X POST \
-  -u "$USERNAME:$PASSWORD" \
-  --data-binary @../functionapp.zip \
-  https://$FUNCTION_APP_NAME.scm.azurewebsites.net/api/zipdeploy
+# Check if function was deployed
+az functionapp function list \
+  --resource-group rg-fabric-autoscale \
+  --name func-fabricscale-xxxxx \
+  --query "[].name" -o table
 ```
 
-**Option D: Using VS Code**
-1. Install **Azure Functions extension** for VS Code
-2. Open `FunctionApp` folder
-3. Click **Azure** icon → **Function App** → **Deploy to Function App**
-4. Select your Function App
+You should see `CheckCapacityMetrics` in the list.
 
-**Verify deployment**:
-- Go to Azure Portal → Function App → Functions
-- You should see `CheckCapacityMetrics` function
+**If the function is not showing:**
+1. Wait 2-3 minutes for deployment to complete
+2. Restart the Function App:
+   ```bash
+   az functionapp restart --resource-group rg-fabric-autoscale --name func-fabricscale-xxxxx
+   ```
+3. Check Function App logs in Application Insights for any errors
 
 ### Step 2: Authorize Office 365 Connection
 
@@ -284,11 +238,11 @@ az role assignment list \
   --output table
 ```
 
-### Step 4: Assign Permissions to Function App
+### Step 3: Assign Permissions to Function App
 
 The Function App needs access to the Fabric workspace to query Capacity Metrics App.
 
-> **Note**: The Function App uses **managed identity authentication** for storage account access. The ARM template automatically assigns the required roles (Storage Blob Data Owner, Storage Queue Data Contributor, Storage Table Data Contributor), so no additional storage configuration is needed.
+> **Note**: The Function App uses **managed identity authentication** for storage account access. The ARM template automatically assigns the required storage roles (Storage Blob Data Owner, Storage Queue Data Contributor, Storage Table Data Contributor). The Function App code is automatically deployed from GitHub via `WEBSITE_RUN_FROM_PACKAGE`.
 
 **Get Principal ID**:
 ```bash
