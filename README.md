@@ -202,6 +202,7 @@ ORDER BY 'Timepoint'[Datetime] DESC
 | `fabricCapacityName` | *Required* | Name of your Fabric capacity |
 | `fabricResourceGroup` | *Required* | Resource group containing the capacity |
 | `fabricWorkspaceId` | *Required* | Workspace ID where Capacity Metrics App is installed |
+| `capacityMetricsDatasetId` | CFafbeb4... | Dataset ID of Capacity Metrics App (find in workspace settings URL) |
 | `emailRecipient` | *Required* | Email for scaling notifications |
 | `scaleUpThreshold` | 80 | CPU % to trigger scale up (0-100) |
 | `scaleDownThreshold` | 30 | CPU % to trigger scale down (0-100) |

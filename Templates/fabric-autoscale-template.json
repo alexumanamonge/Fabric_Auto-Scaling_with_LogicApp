@@ -41,6 +41,13 @@
         "description": "Power BI workspace ID containing the Capacity Metrics App"
       }
     },
+    "capacityMetricsDatasetId": {
+      "type": "string",
+      "defaultValue": "CFafbeb4-7a8b-43d7-a3d3-0a8f8c6b0e85",
+      "metadata": {
+        "description": "Dataset ID of the Capacity Metrics App in your workspace. Find this in Power BI workspace settings URL."
+      }
+    },
     "scaleUpThreshold": {
       "type": "int",
       "defaultValue": 80,
@@ -187,6 +194,9 @@
             "fabricWorkspaceId": {
               "type": "String"
             },
+            "capacityMetricsDatasetId": {
+              "type": "String"
+            },
             "scaleUpThreshold": {
               "type": "Int"
             },
@@ -284,7 +294,7 @@
               "type": "Http",
               "inputs": {
                 "method": "POST",
-                "uri": "https://api.powerbi.com/v1.0/myorg/groups/@{parameters('fabricWorkspaceId')}/datasets/CFafbeb4-7a8b-43d7-a3d3-0a8f8c6b0e85/executeQueries",
+                "uri": "https://api.powerbi.com/v1.0/myorg/groups/@{parameters('fabricWorkspaceId')}/datasets/@{parameters('capacityMetricsDatasetId')}/executeQueries",
                 "authentication": {
                   "type": "ManagedServiceIdentity",
                   "audience": "https://analysis.windows.net/powerbi/api"
@@ -669,6 +679,9 @@
           },
           "fabricWorkspaceId": {
             "value": "[parameters('fabricWorkspaceId')]"
+          },
+          "capacityMetricsDatasetId": {
+            "value": "[parameters('capacityMetricsDatasetId')]"
           },
           "scaleUpThreshold": {
             "value": "[parameters('scaleUpThreshold')]"

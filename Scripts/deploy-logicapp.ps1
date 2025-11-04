@@ -15,6 +15,9 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$FabricWorkspaceId,
     
+    [Parameter(Mandatory=$false)]
+    [string]$CapacityMetricsDatasetId = "CFafbeb4-7a8b-43d7-a3d3-0a8f8c6b0e85",
+    
     [Parameter(Mandatory=$true)]
     [string]$EmailRecipient,
     
@@ -88,6 +91,7 @@ $deployment = az deployment group create `
         fabricResourceGroup=$FabricResourceGroup `
         fabricSubscriptionId=$FabricSubscriptionId `
         fabricWorkspaceId=$FabricWorkspaceId `
+        capacityMetricsDatasetId=$CapacityMetricsDatasetId `
         emailRecipient=$EmailRecipient `
         scaleUpThreshold=$ScaleUpThreshold `
         scaleDownThreshold=$ScaleDownThreshold `
