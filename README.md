@@ -4,14 +4,12 @@ Automatic scaling for Microsoft Fabric capacities based on real-time utilization
 
 ## 🎯 What This Does
 
-Automatically scales your Fabric capacity up or down based on sustained CPU utilization with intelligent logic to prevent flip-flopping:
+Automatically scales your Fabric capacity up or down based on sustained CPU utilization:
 
 - **Scales UP** when utilization stays above threshold (default: ≥100%) for a sustained period (default: 5 minutes)
-- **Scales DOWN** when utilization stays below threshold (default: ≤45%) for a sustained period (default: 15 minutes) AND scale-up is NOT triggered
-- **Priority-based logic**: Scale-up always takes priority when both conditions are met simultaneously
+- **Scales DOWN** when utilization stays below threshold (default: ≤45%) for a sustained period (default: 15 minutes)
 - **Sends email notifications** for every scaling action
 - **Uses 30-second data points** from Capacity Metrics App for precise monitoring
-- **Prevents flapping** with intelligent decision logic and separate configurable timing windows
 
 ## ✨ Key Features
 
@@ -25,22 +23,14 @@ Automatically scales your Fabric capacity up or down based on sustained CPU util
 
 The Logic App runs on a schedule (default: every 5 minutes) and uses intelligent logic to prevent unnecessary scaling:
 
-1. **Data Collection**: Queries the Capacity Metrics dataset for the last hour of usage data (30-second intervals)
-2. **Time Window Evaluation**: 
-   - Finds the newest data point timestamp
-   - Calculates separate evaluation windows for scale-up (5 min) and scale-down (15 min)
-   - Filters data points within each window and calculates average utilization
-3. **Intelligent Decision Logic**:
-   - **IF** scale-up average ≥ threshold (100%) → **Scale UP** (takes priority)
-   - **ELSE IF** scale-down average ≤ threshold (45%) → **Scale DOWN**
-   - **ELSE** → Do nothing (neither condition met)
-4. **Action**: Scales capacity if needed and sends email notification
+## 📊 How It Works
 
-**Why This Prevents Flip-Flopping:**
-- Scale-up always takes priority when threshold is met
-- Scale-down only happens when scale-up condition is NOT triggered
-- Separate time windows (5 min vs 15 min) allow quick response to demand but conservative scale-down
-- If both conditions are met simultaneously, scale-up wins
+The Logic App runs on a schedule (default: every 5 minutes) to monitor and scale your Fabric capacity:
+
+1. **Collects metrics** from the Capacity Metrics App dataset (last hour of data at 30-second intervals)
+2. **Evaluates utilization** against configured thresholds using separate time windows for scale-up (5 min) and scale-down (15 min)
+3. **Scales the capacity** if thresholds are met and sends email notification
+4. **Prevents unnecessary scaling** with intelligent logic that prioritizes scale-up over scale-down
 
 ## 📋 Prerequisites
 
@@ -50,16 +40,18 @@ The Logic App runs on a schedule (default: every 5 minutes) and uses intelligent
 
 ### 2. Capacity Metrics App (REQUIRED)
 
-Install the Microsoft Fabric Capacity Metrics app **before deploying**:
+**Install and configure the Microsoft Fabric Capacity Metrics app before deploying this solution.**
 
-1. Go to your Power BI workspace (or create one)
-2. Click **+ New** > **More options** > Search "Microsoft Fabric Capacity Metrics"
-3. Install from AppSource and configure for your capacity
-4. **Get Workspace ID** from URL: `https://app.powerbi.com/groups/{workspace-id}/...`
-5. **Get Dataset ID**:
-   - Workspace > "Microsoft Fabric Capacity Metrics" dataset > ⋯ > Settings
-   - Copy from URL: `.../datasets/{dataset-id}/...`
-6. **Wait 24-48 hours** for data to populate
+📖 Follow the official Microsoft documentation to install the app:
+- **[Install the Microsoft Fabric Capacity Metrics app](https://learn.microsoft.com/en-us/fabric/enterprise/metrics-app-install)**
+
+**You will need:**
+- **Workspace ID**: Found in the Power BI workspace URL: `https://app.powerbi.com/groups/{workspace-id}/...`
+- **Dataset ID**: Found in the dataset settings URL: `.../datasets/{dataset-id}/...`
+  - Navigate to: Workspace > "Microsoft Fabric Capacity Metrics" dataset > ⋯ > Settings
+  - Copy the GUID from the browser URL
+
+**Important**: Wait 24-48 hours after installation for data to populate.
 
 ### 3. Azure Subscription
 - Contributor access to create resources
@@ -169,14 +161,14 @@ See [DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md) for customization guidance.
 ## 💰 Cost Estimate
 
 **Monthly costs (East US, approximate):**
-- Logic App (Consumption): ~$2-3/month (8,640 runs × ~10 actions per run)
+- Logic App (Consumption): ~$2-4/month (8,640 runs × ~12 actions per run)
 - Storage (Standard LRS): ~$0.02/month
 - Application Insights: ~$2.88/month (first 5GB free)
-- **Total: ~$5-6/month**
+- **Total: ~$5-7/month**
 
 **Breakdown:**
 - 5-minute intervals = 12 runs/hour × 24 hours × 30 days = 8,640 runs/month
-- ~10 actions per run (queries, conditions, parsing) = ~86,400 actions/month
+- ~12 actions per run (queries, parsing, conditions, compose, switch) = ~103,000 actions/month
 - Logic Apps pricing: $0.000025 per action after first 4,000 free
 
 **Cost optimization:**
