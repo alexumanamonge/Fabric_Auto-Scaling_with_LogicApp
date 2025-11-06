@@ -845,7 +845,7 @@
                 }
               },
               "runAfter": {
-                "Calculate_Average_Utilization": [
+                "Calculate_ScaleDown_Average": [
                   "Succeeded"
                 ]
               },
