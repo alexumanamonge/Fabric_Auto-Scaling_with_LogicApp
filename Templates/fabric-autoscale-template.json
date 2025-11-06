@@ -528,12 +528,6 @@
                           "@float(item()['Usage Summary (Last 1 hour)[Average CU %]'])",
                           "@parameters('scaleUpThreshold')"
                         ]
-                      },
-                      {
-                        "equals": [
-                          "@variables('sustainedHighCount')",
-                          "@sub(variables('dataPointCount'), 1)"
-                        ]
                       }
                     ]
                   },
@@ -560,12 +554,6 @@
                         "lessOrEquals": [
                           "@float(item()['Usage Summary (Last 1 hour)[Average CU %]'])",
                           "@parameters('scaleDownThreshold')"
-                        ]
-                      },
-                      {
-                        "equals": [
-                          "@variables('sustainedLowCount')",
-                          "@sub(variables('dataPointCount'), 1)"
                         ]
                       }
                     ]
@@ -607,17 +595,21 @@
                 "and": [
                   {
                     "greaterOrEquals": [
-                      "@variables('sustainedHighCount')",
-                      "@mul(parameters('scaleUpMinutes'), 2)"
+                      "@div(sub(ticks(variables('lastTimestamp')), ticks(variables('firstTimestamp'))), 600000000)",
+                      "@parameters('scaleUpMinutes')"
                     ]
                   },
                   {
-                    "not": {
-                      "equals": [
-                        "@body('Parse_Capacity_Info')?['sku']?['name']",
-                        "@parameters('scaleUpSku')"
-                      ]
-                    }
+                    "greaterOrEquals": [
+                      "@outputs('Calculate_Average_Utilization')",
+                      "@parameters('scaleUpThreshold')"
+                    ]
+                  },
+                  {
+                    "equals": [
+                      "@body('Parse_Capacity_Info')?['sku']?['name']",
+                      "@parameters('scaleDownSku')"
+                    ]
                   }
                 ]
               },
@@ -655,7 +647,7 @@
                     "body": {
                       "To": "@parameters('emailRecipient')",
                       "Subject": "Fabric Capacity Scaled UP - @{parameters('fabricCapacityName')}",
-                      "Body": "<p><strong>Fabric Capacity Auto-Scale Alert</strong></p><p><strong>Action:</strong> SCALED UP</p><p><strong>Capacity:</strong> @{parameters('fabricCapacityName')}</p><p><strong>Previous SKU:</strong> @{body('Parse_Capacity_Info')?['sku']?['name']}</p><p><strong>New SKU:</strong> @{parameters('scaleUpSku')}</p><p><br></p><p><strong>Trigger Analysis:</strong></p><p>&nbsp;&nbsp;• High Data Points: @{variables('sustainedHighCount')} of @{variables('dataPointCount')} total</p><p>&nbsp;&nbsp;• Required: ≥@{mul(parameters('scaleUpMinutes'), 2)} consecutive points (@{parameters('scaleUpMinutes')} minutes)</p><p>&nbsp;&nbsp;• Average Utilization: @{outputs('Calculate_Average_Utilization')}%</p><p>&nbsp;&nbsp;• Threshold: @{parameters('scaleUpThreshold')}%</p><p><br></p><p><strong>Data Window:</strong></p><p>&nbsp;&nbsp;• Oldest Data Point: @{variables('firstTimestamp')} (UTC)</p><p>&nbsp;&nbsp;• Newest Data Point: @{variables('lastTimestamp')} (UTC)</p><p>&nbsp;&nbsp;• Total Data Points Retrieved: @{variables('dataPointCount')}</p><p>&nbsp;&nbsp;• Logic App Check Time: @{convertFromUtc(utcNow(), parameters('localTimeZone'))}</p>",
+                      "Body": "<p><strong>Fabric Capacity Auto-Scale Alert</strong></p><p><strong>Action:</strong> SCALED UP</p><p><strong>Capacity:</strong> @{parameters('fabricCapacityName')}</p><p><strong>Previous SKU:</strong> @{body('Parse_Capacity_Info')?['sku']?['name']}</p><p><strong>New SKU:</strong> @{parameters('scaleUpSku')}</p><p><br></p><p><strong>Trigger Analysis:</strong></p><p>&nbsp;&nbsp;• High Data Points: @{variables('sustainedHighCount')} of @{variables('dataPointCount')} evaluated</p><p>&nbsp;&nbsp;• Required Time: @{parameters('scaleUpMinutes')} minutes sustained</p><p>&nbsp;&nbsp;• Time Span: @{div(sub(ticks(variables('lastTimestamp')), ticks(variables('firstTimestamp'))), 600000000)} minutes</p><p>&nbsp;&nbsp;• Average Utilization: @{outputs('Calculate_Average_Utilization')}%</p><p>&nbsp;&nbsp;• Threshold: @{parameters('scaleUpThreshold')}%</p><p><br></p><p><strong>Data Window:</strong></p><p>&nbsp;&nbsp;• Oldest Data Point: @{variables('firstTimestamp')} (UTC)</p><p>&nbsp;&nbsp;• Newest Data Point: @{variables('lastTimestamp')} (UTC)</p><p>&nbsp;&nbsp;• Total Data Points Retrieved: @{variables('dataPointCount')}</p><p>&nbsp;&nbsp;• Logic App Check Time: @{convertFromUtc(utcNow(), parameters('localTimeZone'))}</p>",
                       "Importance": "High"
                     }
                   },
@@ -679,17 +671,21 @@
                       "and": [
                         {
                           "greaterOrEquals": [
-                            "@variables('sustainedLowCount')",
-                            "@mul(parameters('scaleDownMinutes'), 2)"
+                            "@div(sub(ticks(variables('lastTimestamp')), ticks(variables('firstTimestamp'))), 600000000)",
+                            "@parameters('scaleDownMinutes')"
                           ]
                         },
                         {
-                          "not": {
-                            "equals": [
-                              "@body('Parse_Capacity_Info')?['sku']?['name']",
-                              "@parameters('scaleDownSku')"
-                            ]
-                          }
+                          "lessOrEquals": [
+                            "@outputs('Calculate_Average_Utilization')",
+                            "@parameters('scaleDownThreshold')"
+                          ]
+                        },
+                        {
+                          "equals": [
+                            "@body('Parse_Capacity_Info')?['sku']?['name']",
+                            "@parameters('scaleUpSku')"
+                          ]
                         }
                       ]
                     },
@@ -727,7 +723,7 @@
                           "body": {
                             "To": "@parameters('emailRecipient')",
                             "Subject": "Fabric Capacity Scaled DOWN - @{parameters('fabricCapacityName')}",
-                            "Body": "<p><strong>Fabric Capacity Auto-Scale Alert</strong></p><p><strong>Action:</strong> SCALED DOWN</p><p><strong>Capacity:</strong> @{parameters('fabricCapacityName')}</p><p><strong>Previous SKU:</strong> @{body('Parse_Capacity_Info')?['sku']?['name']}</p><p><strong>New SKU:</strong> @{parameters('scaleDownSku')}</p><p><br></p><p><strong>Trigger Analysis:</strong></p><p>&nbsp;&nbsp;• Low Data Points: @{variables('sustainedLowCount')} of @{variables('dataPointCount')} total</p><p>&nbsp;&nbsp;• Required: ≥@{mul(parameters('scaleDownMinutes'), 2)} consecutive points (@{parameters('scaleDownMinutes')} minutes)</p><p>&nbsp;&nbsp;• Average Utilization: @{outputs('Calculate_Average_Utilization')}%</p><p>&nbsp;&nbsp;• Threshold: @{parameters('scaleDownThreshold')}%</p><p><br></p><p><strong>Data Window:</strong></p><p>&nbsp;&nbsp;• Oldest Data Point: @{variables('firstTimestamp')} (UTC)</p><p>&nbsp;&nbsp;• Newest Data Point: @{variables('lastTimestamp')} (UTC)</p><p>&nbsp;&nbsp;• Total Data Points Retrieved: @{variables('dataPointCount')}</p><p>&nbsp;&nbsp;• Logic App Check Time: @{convertFromUtc(utcNow(), parameters('localTimeZone'))}</p>",
+                            "Body": "<p><strong>Fabric Capacity Auto-Scale Alert</strong></p><p><strong>Action:</strong> SCALED DOWN</p><p><strong>Capacity:</strong> @{parameters('fabricCapacityName')}</p><p><strong>Previous SKU:</strong> @{body('Parse_Capacity_Info')?['sku']?['name']}</p><p><strong>New SKU:</strong> @{parameters('scaleDownSku')}</p><p><br></p><p><strong>Trigger Analysis:</strong></p><p>&nbsp;&nbsp;• Low Data Points: @{variables('sustainedLowCount')} of @{variables('dataPointCount')} evaluated</p><p>&nbsp;&nbsp;• Required Time: @{parameters('scaleDownMinutes')} minutes sustained</p><p>&nbsp;&nbsp;• Time Span: @{div(sub(ticks(variables('lastTimestamp')), ticks(variables('firstTimestamp'))), 600000000)} minutes</p><p>&nbsp;&nbsp;• Average Utilization: @{outputs('Calculate_Average_Utilization')}%</p><p>&nbsp;&nbsp;• Threshold: @{parameters('scaleDownThreshold')}%</p><p><br></p><p><strong>Data Window:</strong></p><p>&nbsp;&nbsp;• Oldest Data Point: @{variables('firstTimestamp')} (UTC)</p><p>&nbsp;&nbsp;• Newest Data Point: @{variables('lastTimestamp')} (UTC)</p><p>&nbsp;&nbsp;• Total Data Points Retrieved: @{variables('dataPointCount')}</p><p>&nbsp;&nbsp;• Logic App Check Time: @{convertFromUtc(utcNow(), parameters('localTimeZone'))}</p>",
                             "Importance": "Normal"
                           }
                         },
