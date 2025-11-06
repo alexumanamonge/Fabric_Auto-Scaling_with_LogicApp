@@ -967,6 +967,9 @@
           },
           "emailRecipient": {
             "value": "[parameters('emailRecipient')]"
+          },
+          "localTimeZone": {
+            "value": "[parameters('localTimeZone')]"
           }
         }
       }
