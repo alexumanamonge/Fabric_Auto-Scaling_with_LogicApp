@@ -306,7 +306,7 @@
                 "body": {
                   "queries": [
                     {
-                      "query": "EVALUATE FILTER('Usage Summary (Last 1 hour)', 'Usage Summary (Last 1 hour)'[Timestamp] >= NOW() - TIME(0,5,0))"
+                      "query": "EVALUATE 'Usage Summary (Last 1 hour)'"
                     }
                   ],
                   "serializerSettings": {
