@@ -344,6 +344,77 @@ When there's no data, the `maxTimestamp` variable remains empty, and the cutoff 
 
 ---
 
+## Known Issues & Limitations
+
+### Empty Data After Capacity Resume
+
+**Issue**: If you run the Logic App immediately after resuming a paused capacity, you may see this error:
+
+```
+InvalidTemplate: Unable to process template language expressions in action 'Calculate_ScaleUp_Cutoff_Time'... 
+The datetime string must match ISO 8601 format.
+```
+
+**Cause**: When a capacity is paused, no metrics data is collected. The Capacity Metrics App needs time to populate data after resuming.
+
+**Solution**: 
+- Wait 5-10 minutes after resuming the capacity before the Logic App runs
+- The error will resolve automatically once data is available
+- This typically only affects capacities that are frequently paused/resumed
+- For always-running production capacities, this is not an issue
+
+### Data Latency
+
+Capacity Metrics data typically has a 5-6 minute lag. This is normal and factored into the evaluation logic (already noted in the "How It Works" section of the README).
+
+---
+
+## Customization Examples
+
+### Different Thresholds for Business Hours
+
+You can edit the Logic App to add time-based conditions for more aggressive scaling during business hours:
+
+**Example approach:**
+- Add a **Condition** action to check current time
+- **Business hours path** (e.g., 8 AM - 6 PM weekdays):
+  - Scale up threshold: 70%
+  - Scale up window: 3 minutes
+  - More aggressive scaling when users are active
+- **Off-hours path** (evenings, weekends):
+  - Scale up threshold: 85%
+  - Scale up window: 10 minutes
+  - More conservative scaling to save costs
+
+**Implementation:**
+1. Open Logic App Designer
+2. Add a **Condition** action before `Determine_Scaling_Action`
+3. Use expression: `@less(utcNow('HH'), 18)` to check if before 6 PM
+4. Duplicate scaling logic in each branch with different parameters
+
+### Multi-Tier Scaling
+
+Add nested conditions to scale to different SKUs based on utilization levels:
+
+**Example tiered scaling:**
+- Utilization ≥ 90% → Scale to F256 (high demand)
+- Utilization ≥ 80% → Scale to F128 (moderate demand)
+- Utilization ≥ 70% → Scale to F64 (normal demand)
+- Utilization < 40% → Scale down to F32 (low demand)
+
+**Implementation:**
+1. Modify the `Execute_Scaling_Decision` Switch action
+2. Add additional cases for different utilization ranges
+3. Calculate multiple threshold averages
+4. Create more granular scaling rules
+
+**Considerations:**
+- More tiers = more complexity in monitoring
+- Ensure sufficient time windows to prevent rapid tier hopping
+- Consider cost vs. performance trade-offs for each tier
+
+---
+
 ## Configuration Reference
 
 ### Default Parameters

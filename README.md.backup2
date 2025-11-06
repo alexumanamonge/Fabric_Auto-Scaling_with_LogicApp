@@ -120,6 +120,45 @@ You'll receive an email for each scaling action with:
 ## 💰 Cost Estimate
 
 **Monthly costs (East US, approximate):**
+```
+InvalidTemplate: Unable to process template language expressions in action 'Calculate_ScaleUp_Cutoff_Time'... 
+The datetime string must match ISO 8601 format.
+```
+
+**Cause**: When a capacity is paused, no metrics data is collected. The Capacity Metrics App needs time to populate data after resuming.
+
+**Solution**: 
+- Wait 5-10 minutes after resuming the capacity before the Logic App runs
+- The error will resolve automatically once data is available
+- This typically only affects capacities that are frequently paused/resumed
+- For always-running production capacities, this is not an issue
+
+### Data Latency
+
+Capacity Metrics data typically has a 5-6 minute lag. This is normal and factored into the evaluation logic.
+
+� For monitoring details, testing instructions, and troubleshooting, see [DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md).
+
+## 💡 Customization Examples
+
+### Different Thresholds for Business Hours
+
+Edit the Logic App to add conditions based on time:
+- Scale up aggressively during business hours (70% threshold, 3 min sustained)
+- Scale conservatively off-hours (85% threshold, 10 min sustained)
+
+### Multi-Tier Scaling
+
+Add nested conditions to scale to different SKUs based on utilization:
+- ≥90% → F256
+- ≥80% → F128
+- ≥70% → F64
+
+See [DEPLOYMENT-GUIDE.md](./DEPLOYMENT-GUIDE.md) for customization guidance.
+
+## 💰 Cost Estimate
+
+**Monthly costs (East US, approximate):**
 - Logic App (Consumption): ~$2-4/month (8,640 runs × ~12 actions per run)
 - Storage (Standard LRS): ~$0.02/month
 - Application Insights: ~$2.88/month (first 5GB free)
@@ -140,7 +179,7 @@ Contributions welcome! Please fork the repository, create a feature branch, and 
 
 ---
 
-## 📄 License & Disclaimer
+## � License & Disclaimer
 
 **MIT License** - This solution is provided **as-is** without any warranties or guarantees. Use at your own risk.
 

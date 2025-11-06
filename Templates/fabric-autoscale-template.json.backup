@@ -586,35 +586,25 @@
                 ]
               }
             },
-            "Check_If_Data_Available": {
-              "type": "If",
-              "expression": {
-                "and": [
-                  {
-                    "not": {
-                      "equals": [
-                        "@variables('maxTimestamp')",
-                        ""
-                      ]
-                    }
-                  }
+            "Calculate_ScaleUp_Cutoff_Time": {
+              "type": "Compose",
+              "inputs": "@addMinutes(variables('maxTimestamp'), mul(-1, parameters('scaleUpMinutes')))",
+              "runAfter": {
+                "Find_Max_Timestamp": [
+                  "Succeeded"
                 ]
-              },
-              "actions": {
-                "Calculate_ScaleUp_Cutoff_Time": {
-                  "type": "Compose",
-                  "inputs": "@addMinutes(variables('maxTimestamp'), mul(-1, parameters('scaleUpMinutes')))"
-                },
-                "Calculate_ScaleDown_Cutoff_Time": {
-                  "type": "Compose",
-                  "inputs": "@addMinutes(variables('maxTimestamp'), mul(-1, parameters('scaleDownMinutes')))",
-                  "runAfter": {
-                    "Calculate_ScaleUp_Cutoff_Time": [
-                      "Succeeded"
-                    ]
-                  }
-                },
-                "Process_All_Data_Points": {
+              }
+            },
+            "Calculate_ScaleDown_Cutoff_Time": {
+              "type": "Compose",
+              "inputs": "@addMinutes(variables('maxTimestamp'), mul(-1, parameters('scaleDownMinutes')))",
+              "runAfter": {
+                "Calculate_ScaleUp_Cutoff_Time": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Process_All_Data_Points": {
               "type": "Foreach",
               "foreach": "@body('Parse_Metrics_Response')?['results']?[0]?['tables']?[0]?['rows']",
               "actions": {
@@ -794,164 +784,145 @@
                 ]
               }
             },
-            "Determine_Scaling_Action": {
-              "type": "Compose",
-              "inputs": "@if(greaterOrEquals(float(outputs('Calculate_ScaleUp_Average')), parameters('scaleUpThreshold')), 'SCALE_UP', if(lessOrEquals(float(outputs('Calculate_ScaleDown_Average')), parameters('scaleDownThreshold')), 'SCALE_DOWN', 'NONE'))",
-              "runAfter": {
-                "Calculate_ScaleDown_Average": [
-                  "Succeeded"
+            "Check_Scale_Up_Condition": {
+              "type": "If",
+              "expression": {
+                "and": [
+                  {
+                    "greaterOrEquals": [
+                      "@float(outputs('Calculate_ScaleUp_Average'))",
+                      "@parameters('scaleUpThreshold')"
+                    ]
+                  },
+                  {
+                    "not": {
+                      "equals": [
+                        "@body('Parse_Capacity_Info')?['sku']?['name']",
+                        "@parameters('scaleUpSku')"
+                      ]
+                    }
+                  }
                 ]
-              }
-            },
-            "Execute_Scaling_Decision": {
-              "type": "Switch",
-              "expression": "@outputs('Determine_Scaling_Action')",
-              "cases": {
-                "Scale_Up": {
-                  "case": "SCALE_UP",
-                  "actions": {
-                    "Check_Not_Already_Scaled_Up": {
-                      "type": "If",
-                      "expression": {
-                        "and": [
-                          {
-                            "not": {
-                              "equals": [
-                                "@body('Parse_Capacity_Info')?['sku']?['name']",
-                                "@parameters('scaleUpSku')"
-                              ]
-                            }
-                          }
-                        ]
-                      },
-                      "actions": {
-                        "Scale_Up_Capacity": {
-                          "type": "Http",
-                          "inputs": {
-                            "method": "PATCH",
-                            "uri": "https://management.azure.com/subscriptions/@{parameters('fabricSubscriptionId')}/resourceGroups/@{parameters('fabricResourceGroup')}/providers/Microsoft.Fabric/capacities/@{parameters('fabricCapacityName')}?api-version=2023-11-01",
-                            "authentication": {
-                              "type": "ManagedServiceIdentity",
-                              "audience": "https://management.azure.com/"
-                            },
-                            "headers": {
-                              "Content-Type": "application/json"
-                            },
-                            "body": {
-                              "sku": {
-                                "name": "@{parameters('scaleUpSku')}",
-                                "tier": "Fabric"
-                              }
-                            }
-                          }
-                        },
-                        "Send_ScaleUp_Email": {
-                          "type": "ApiConnection",
-                          "inputs": {
-                            "host": {
-                              "connection": {
-                                "name": "@parameters('$connections')['office365']['connectionId']"
-                              }
-                            },
-                            "method": "post",
-                            "path": "/v2/Mail",
-                            "body": {
-                              "To": "@parameters('emailRecipient')",
-                              "Subject": "Fabric Capacity Scaled UP - @{parameters('fabricCapacityName')}",
-                              "Body": "<p><strong>Fabric Capacity Auto-Scale Alert</strong></p><p><strong>Action:</strong> SCALED UP</p><p><strong>Capacity:</strong> @{parameters('fabricCapacityName')}</p><p><strong>Previous SKU:</strong> @{body('Parse_Capacity_Info')?['sku']?['name']}</p><p><strong>New SKU:</strong> @{parameters('scaleUpSku')}</p><p><br></p><p><strong>Trigger Analysis:</strong></p><p>&nbsp;&nbsp;• Evaluation Window: Last @{parameters('scaleUpMinutes')} minutes</p><p>&nbsp;&nbsp;• Data Points Evaluated: @{variables('scaleUpCount')}</p><p>&nbsp;&nbsp;• Average Utilization: @{outputs('Calculate_ScaleUp_Average')}%</p><p>&nbsp;&nbsp;• Threshold: @{parameters('scaleUpThreshold')}%</p><p><br></p><p><strong>Data Window:</strong></p><p>&nbsp;&nbsp;• Cutoff Time: @{outputs('Calculate_ScaleUp_Cutoff_Time')}</p><p>&nbsp;&nbsp;• Newest Data Point: @{variables('maxTimestamp')}</p><p>&nbsp;&nbsp;• Total Data Points Retrieved: @{variables('dataPointCount')}</p>",
-                              "Importance": "High"
-                            }
-                          },
-                          "runAfter": {
-                            "Scale_Up_Capacity": [
-                              "Succeeded"
-                            ]
-                          }
-                        }
+              },
+              "actions": {
+                "Scale_Up_Capacity": {
+                  "type": "Http",
+                  "inputs": {
+                    "method": "PATCH",
+                    "uri": "https://management.azure.com/subscriptions/@{parameters('fabricSubscriptionId')}/resourceGroups/@{parameters('fabricResourceGroup')}/providers/Microsoft.Fabric/capacities/@{parameters('fabricCapacityName')}?api-version=2023-11-01",
+                    "authentication": {
+                      "type": "ManagedServiceIdentity",
+                      "audience": "https://management.azure.com/"
+                    },
+                    "headers": {
+                      "Content-Type": "application/json"
+                    },
+                    "body": {
+                      "sku": {
+                        "name": "@{parameters('scaleUpSku')}",
+                        "tier": "Fabric"
                       }
                     }
                   }
                 },
-                "Scale_Down": {
-                  "case": "SCALE_DOWN",
-                  "actions": {
-                    "Check_Not_Already_Scaled_Down": {
-                      "type": "If",
-                      "expression": {
-                        "and": [
-                          {
-                            "not": {
-                              "equals": [
-                                "@body('Parse_Capacity_Info')?['sku']?['name']",
-                                "@parameters('scaleDownSku')"
-                              ]
-                            }
-                          }
-                        ]
-                      },
-                      "actions": {
-                        "Scale_Down_Capacity": {
-                          "type": "Http",
-                          "inputs": {
-                            "method": "PATCH",
-                            "uri": "https://management.azure.com/subscriptions/@{parameters('fabricSubscriptionId')}/resourceGroups/@{parameters('fabricResourceGroup')}/providers/Microsoft.Fabric/capacities/@{parameters('fabricCapacityName')}?api-version=2023-11-01",
-                            "authentication": {
-                              "type": "ManagedServiceIdentity",
-                              "audience": "https://management.azure.com/"
-                            },
-                            "headers": {
-                              "Content-Type": "application/json"
-                            },
-                            "body": {
-                              "sku": {
-                                "name": "@{parameters('scaleDownSku')}",
-                                "tier": "Fabric"
-                              }
-                            }
-                          }
+                "Send_ScaleUp_Email": {
+                  "type": "ApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connection": {
+                        "name": "@parameters('$connections')['office365']['connectionId']"
+                      }
+                    },
+                    "method": "post",
+                    "path": "/v2/Mail",
+                    "body": {
+                      "To": "@parameters('emailRecipient')",
+                      "Subject": "Fabric Capacity Scaled UP - @{parameters('fabricCapacityName')}",
+                      "Body": "<p><strong>Fabric Capacity Auto-Scale Alert</strong></p><p><strong>Action:</strong> SCALED UP</p><p><strong>Capacity:</strong> @{parameters('fabricCapacityName')}</p><p><strong>Previous SKU:</strong> @{body('Parse_Capacity_Info')?['sku']?['name']}</p><p><strong>New SKU:</strong> @{parameters('scaleUpSku')}</p><p><br></p><p><strong>Trigger Analysis:</strong></p><p>&nbsp;&nbsp;• Evaluation Window: Last @{parameters('scaleUpMinutes')} minutes</p><p>&nbsp;&nbsp;• Data Points Evaluated: @{variables('scaleUpCount')}</p><p>&nbsp;&nbsp;• Average Utilization: @{outputs('Calculate_ScaleUp_Average')}%</p><p>&nbsp;&nbsp;• Threshold: @{parameters('scaleUpThreshold')}%</p><p><br></p><p><strong>Data Window:</strong></p><p>&nbsp;&nbsp;• Cutoff Time: @{outputs('Calculate_ScaleUp_Cutoff_Time')}</p><p>&nbsp;&nbsp;• Newest Data Point: @{variables('maxTimestamp')}</p><p>&nbsp;&nbsp;• Total Data Points Retrieved: @{variables('dataPointCount')}</p>",
+                      "Importance": "High"
+                    }
+                  },
+                  "runAfter": {
+                    "Scale_Up_Capacity": [
+                      "Succeeded"
+                    ]
+                  }
+                }
+              },
+              "runAfter": {
+                "Calculate_ScaleDown_Average": [
+                  "Succeeded"
+                ]
+              },
+              "else": {
+                "actions": {
+                  "Check_Scale_Down_Condition": {
+                    "type": "If",
+                    "expression": {
+                      "and": [
+                        {
+                          "lessOrEquals": [
+                            "@float(outputs('Calculate_ScaleDown_Average'))",
+                            "@parameters('scaleDownThreshold')"
+                          ]
                         },
-                        "Send_ScaleDown_Email": {
-                          "type": "ApiConnection",
-                          "inputs": {
-                            "host": {
-                              "connection": {
-                                "name": "@parameters('$connections')['office365']['connectionId']"
-                              }
-                            },
-                            "method": "post",
-                            "path": "/v2/Mail",
-                            "body": {
-                              "To": "@parameters('emailRecipient')",
-                              "Subject": "Fabric Capacity Scaled DOWN - @{parameters('fabricCapacityName')}",
-                              "Body": "<p><strong>Fabric Capacity Auto-Scale Alert</strong></p><p><strong>Action:</strong> SCALED DOWN</p><p><strong>Capacity:</strong> @{parameters('fabricCapacityName')}</p><p><strong>Previous SKU:</strong> @{body('Parse_Capacity_Info')?['sku']?['name']}</p><p><strong>New SKU:</strong> @{parameters('scaleDownSku')}</p><p><br></p><p><strong>Trigger Analysis:</strong></p><p>&nbsp;&nbsp;• Evaluation Window: Last @{parameters('scaleDownMinutes')} minutes</p><p>&nbsp;&nbsp;• Data Points Evaluated: @{variables('scaleDownCount')}</p><p>&nbsp;&nbsp;• Average Utilization: @{outputs('Calculate_ScaleDown_Average')}%</p><p>&nbsp;&nbsp;• Threshold: @{parameters('scaleDownThreshold')}%</p><p>&nbsp;&nbsp;• Cutoff Time: @{outputs('Calculate_ScaleDown_Cutoff_Time')}</p><p>&nbsp;&nbsp;• Newest Data Point: @{variables('maxTimestamp')}</p><p>&nbsp;&nbsp;• Total Data Points Retrieved: @{variables('dataPointCount')}</p>",
-                              "Importance": "Normal"
-                            }
-                          },
-                          "runAfter": {
-                            "Scale_Down_Capacity": [
-                              "Succeeded"
+                        {
+                          "not": {
+                            "equals": [
+                              "@body('Parse_Capacity_Info')?['sku']?['name']",
+                              "@parameters('scaleDownSku')"
                             ]
                           }
+                        }
+                      ]
+                    },
+                    "actions": {
+                      "Scale_Down_Capacity": {
+                        "type": "Http",
+                        "inputs": {
+                          "method": "PATCH",
+                          "uri": "https://management.azure.com/subscriptions/@{parameters('fabricSubscriptionId')}/resourceGroups/@{parameters('fabricResourceGroup')}/providers/Microsoft.Fabric/capacities/@{parameters('fabricCapacityName')}?api-version=2023-11-01",
+                          "authentication": {
+                            "type": "ManagedServiceIdentity",
+                            "audience": "https://management.azure.com/"
+                          },
+                          "headers": {
+                            "Content-Type": "application/json"
+                          },
+                          "body": {
+                            "sku": {
+                              "name": "@{parameters('scaleDownSku')}",
+                              "tier": "Fabric"
+                            }
+                          }
+                        }
+                      },
+                      "Send_ScaleDown_Email": {
+                        "type": "ApiConnection",
+                        "inputs": {
+                          "host": {
+                            "connection": {
+                              "name": "@parameters('$connections')['office365']['connectionId']"
+                            }
+                          },
+                          "method": "post",
+                          "path": "/v2/Mail",
+                          "body": {
+                            "To": "@parameters('emailRecipient')",
+                            "Subject": "Fabric Capacity Scaled DOWN - @{parameters('fabricCapacityName')}",
+                            "Body": "<p><strong>Fabric Capacity Auto-Scale Alert</strong></p><p><strong>Action:</strong> SCALED DOWN</p><p><strong>Capacity:</strong> @{parameters('fabricCapacityName')}</p><p><strong>Previous SKU:</strong> @{body('Parse_Capacity_Info')?['sku']?['name']}</p><p><strong>New SKU:</strong> @{parameters('scaleDownSku')}</p><p><br></p><p><strong>Trigger Analysis:</strong></p><p>&nbsp;&nbsp;• Evaluation Window: Last @{parameters('scaleDownMinutes')} minutes</p><p>&nbsp;&nbsp;• Data Points Evaluated: @{variables('scaleDownCount')}</p><p>&nbsp;&nbsp;• Average Utilization: @{outputs('Calculate_ScaleDown_Average')}%</p><p>&nbsp;&nbsp;• Threshold: @{parameters('scaleDownThreshold')}%</p><p>&nbsp;&nbsp;• Cutoff Time: @{outputs('Calculate_ScaleDown_Cutoff_Time')}</p><p>&nbsp;&nbsp;• Newest Data Point: @{variables('maxTimestamp')}</p><p>&nbsp;&nbsp;• Total Data Points Retrieved: @{variables('dataPointCount')}</p>",
+                            "Importance": "Normal"
+                          }
+                        },
+                        "runAfter": {
+                          "Scale_Down_Capacity": [
+                            "Succeeded"
+                          ]
                         }
                       }
                     }
                   }
                 }
-              },
-              "default": {
-                "actions": {}
-              },
-              "runAfter": {
-                "Determine_Scaling_Action": [
-                  "Succeeded"
-                ]
-              }
-            }
-              },
-              "runAfter": {
-                "Find_Max_Timestamp": [
-                  "Succeeded"
-                ]
               }
             }
           }
