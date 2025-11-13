@@ -51,14 +51,14 @@
       "type": "int",
       "defaultValue": 100,
       "minValue": 0,
-      "maxValue": 100,
+      "maxValue": 200,
       "metadata": {
         "description": "CPU utilization percentage threshold for scaling up"
       }
     },
     "scaleDownThreshold": {
       "type": "int",
-      "defaultValue": 45,
+      "defaultValue": 50,
       "minValue": 0,
       "maxValue": 100,
       "metadata": {
@@ -216,7 +216,7 @@
             },
             "scaleDownThreshold": {
               "type": "Int",
-              "defaultValue": 45
+              "defaultValue": 50
             },
             "scaleUpSku": {
               "type": "String",
@@ -980,24 +980,6 @@
           },
           "capacityMetricsDatasetId": {
             "value": "[parameters('capacityMetricsDatasetId')]"
-          },
-          "scaleUpThreshold": {
-            "value": "[parameters('scaleUpThreshold')]"
-          },
-          "scaleDownThreshold": {
-            "value": "[parameters('scaleDownThreshold')]"
-          },
-          "scaleUpSku": {
-            "value": "[parameters('scaleUpSku')]"
-          },
-          "scaleDownSku": {
-            "value": "[parameters('scaleDownSku')]"
-          },
-          "scaleUpMinutes": {
-            "value": "[parameters('scaleUpMinutes')]"
-          },
-          "scaleDownMinutes": {
-            "value": "[parameters('scaleDownMinutes')]"
           },
           "emailRecipient": {
             "value": "[parameters('emailRecipient')]"

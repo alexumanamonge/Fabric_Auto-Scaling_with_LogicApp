@@ -89,8 +89,8 @@ The Logic App runs on a schedule (default: every 5 minutes) to monitor and scale
 | `fabricWorkspaceId` | *Required* | Workspace ID where Capacity Metrics App is installed |
 | `capacityMetricsDatasetId` | *Required* | Dataset ID of Capacity Metrics App |
 | `emailRecipient` | *Required* | Email for scaling notifications |
-| `scaleUpThreshold` | 100 | CPU % to trigger scale up (0-100) |
-| `scaleDownThreshold` | 45 | CPU % to trigger scale down (0-100) |
+| `scaleUpThreshold` | 100 | CPU % to trigger scale up (0-200) |
+| `scaleDownThreshold` | 50 | CPU % to trigger scale down (0-100) |
 | `scaleUpSku` | F128 | SKU to scale up to |
 | `scaleDownSku` | F64 | SKU to scale down to |
 | `scaleUpMinutes` | 5 | Minutes evaluation window for scale-UP (max: 15) |
@@ -102,6 +102,17 @@ The Logic App runs on a schedule (default: every 5 minutes) to monitor and scale
 - `scaleUpMinutes = 5` evaluates last 5 minutes of data (~10 data points)
 - `scaleDownMinutes = 15` evaluates last 15 minutes of data (~30 data points)
 - Longer scale-down window provides more conservative scaling behavior
+
+### Post-Deployment Parameter Changes
+
+After deployment, you can adjust scaling behavior **without redeploying** by editing parameters in Azure Portal:
+
+**Editable Parameters:**
+- `scaleUpThreshold`, `scaleDownThreshold` - Adjust CPU thresholds
+- `scaleUpSku`, `scaleDownSku` - Change target SKUs
+- `scaleUpMinutes`, `scaleDownMinutes` - Modify evaluation windows
+
+Go to: **Logic App** > **Parameters** > Edit values > **Save**
 
 ## 📧 Email Notifications
 

@@ -421,8 +421,8 @@ Add nested conditions to scale to different SKUs based on utilization levels:
 
 | Parameter | Default Value | Description |
 |-----------|---------------|-------------|
-| `scaleUpThreshold` | 100 | CPU % to trigger scale up |
-| `scaleDownThreshold` | 45 | CPU % to trigger scale down |
+| `scaleUpThreshold` | 100 | CPU % to trigger scale up (0-200) |
+| `scaleDownThreshold` | 50 | CPU % to trigger scale down (0-100) |
 | `scaleUpSku` | F128 | SKU to scale up to |
 | `scaleDownSku` | F64 | SKU to scale down to |
 | `scaleUpMinutes` | 5 | Evaluation window for scale-UP (max: 15) |
@@ -440,14 +440,23 @@ Add nested conditions to scale to different SKUs based on utilization levels:
 
 ### Customizing Parameters
 
-**After deployment**, you can change parameters in the Azure Portal:
+**After deployment**, you can modify scaling behavior parameters without redeploying:
 
+**Editable Parameters (via Azure Portal):**
 1. Go to **Logic App** > **Parameters** (left menu under Settings)
 2. Edit parameter values directly:
-   - `scaleUpThreshold`, `scaleDownThreshold`
-   - `scaleUpSku`, `scaleDownSku`
-   - `scaleUpMinutes`, `scaleDownMinutes`
+   - `scaleUpThreshold` (0-200%) - CPU threshold to trigger scale up
+   - `scaleDownThreshold` (0-100%) - CPU threshold to trigger scale down
+   - `scaleUpSku` - Target SKU for scaling up
+   - `scaleDownSku` - Target SKU for scaling down
+   - `scaleUpMinutes` - Evaluation window for scale-up decisions
+   - `scaleDownMinutes` - Evaluation window for scale-down decisions
 3. Click **Save**
+
+**Fixed Parameters (set at deployment):**
+- `fabricSubscriptionId`, `fabricResourceGroup`, `fabricCapacityName`
+- `fabricWorkspaceId`, `capacityMetricsDatasetId`
+- `emailRecipient`
 
 **Or** via Logic App Designer:
 1. Go to **Logic App** > **Logic app designer**
