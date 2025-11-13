@@ -111,6 +111,7 @@ After deployment, you can adjust scaling behavior **without redeploying** by edi
 - `scaleUpThreshold`, `scaleDownThreshold` - Adjust CPU thresholds
 - `scaleUpSku`, `scaleDownSku` - Change target SKUs
 - `scaleUpMinutes`, `scaleDownMinutes` - Modify evaluation windows
+- `emailRecipient` - Change notification email address
 
 Go to: **Logic App** > **Parameters** > Edit values > **Save**
 

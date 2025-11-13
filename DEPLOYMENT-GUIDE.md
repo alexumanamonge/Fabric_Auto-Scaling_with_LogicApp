@@ -451,12 +451,12 @@ Add nested conditions to scale to different SKUs based on utilization levels:
    - `scaleDownSku` - Target SKU for scaling down
    - `scaleUpMinutes` - Evaluation window for scale-up decisions
    - `scaleDownMinutes` - Evaluation window for scale-down decisions
+   - `emailRecipient` - Email address for scaling notifications
 3. Click **Save**
 
 **Fixed Parameters (set at deployment):**
 - `fabricSubscriptionId`, `fabricResourceGroup`, `fabricCapacityName`
 - `fabricWorkspaceId`, `capacityMetricsDatasetId`
-- `emailRecipient`
 
 **Or** via Logic App Designer:
 1. Go to **Logic App** > **Logic app designer**

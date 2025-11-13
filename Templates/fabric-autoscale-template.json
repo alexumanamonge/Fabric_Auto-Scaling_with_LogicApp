@@ -980,9 +980,6 @@
           },
           "capacityMetricsDatasetId": {
             "value": "[parameters('capacityMetricsDatasetId')]"
-          },
-          "emailRecipient": {
-            "value": "[parameters('emailRecipient')]"
           }
         }
       }
