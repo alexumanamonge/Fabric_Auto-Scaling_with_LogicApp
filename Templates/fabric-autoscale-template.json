@@ -980,6 +980,27 @@
           },
           "capacityMetricsDatasetId": {
             "value": "[parameters('capacityMetricsDatasetId')]"
+          },
+          "scaleUpThreshold": {
+            "value": "[parameters('scaleUpThreshold')]"
+          },
+          "scaleDownThreshold": {
+            "value": "[parameters('scaleDownThreshold')]"
+          },
+          "scaleUpSku": {
+            "value": "[parameters('scaleUpSku')]"
+          },
+          "scaleDownSku": {
+            "value": "[parameters('scaleDownSku')]"
+          },
+          "scaleUpMinutes": {
+            "value": "[parameters('scaleUpMinutes')]"
+          },
+          "scaleDownMinutes": {
+            "value": "[parameters('scaleDownMinutes')]"
+          },
+          "emailRecipient": {
+            "value": "[parameters('emailRecipient')]"
           }
         }
       }
