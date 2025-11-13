@@ -442,9 +442,10 @@ Add nested conditions to scale to different SKUs based on utilization levels:
 
 **After deployment**, you can modify scaling behavior parameters without redeploying:
 
-**Editable Parameters (via Azure Portal):**
-1. Go to **Logic App** > **Parameters** (left menu under Settings)
-2. Edit parameter values directly:
+**Editable Parameters (via Logic App Code View):**
+1. Go to **Logic App** > **Logic app code view** (left menu under Development Tools)
+2. Scroll to the **bottom of the JSON** to find the `"parameters"` section
+3. Edit the parameter values directly:
    - `scaleUpThreshold` (0-200%) - CPU threshold to trigger scale up
    - `scaleDownThreshold` (0-100%) - CPU threshold to trigger scale down
    - `scaleUpSku` - Target SKU for scaling up
@@ -452,17 +453,30 @@ Add nested conditions to scale to different SKUs based on utilization levels:
    - `scaleUpMinutes` - Evaluation window for scale-up decisions
    - `scaleDownMinutes` - Evaluation window for scale-down decisions
    - `emailRecipient` - Email address for scaling notifications
-3. Click **Save**
+4. Click **Save** (top toolbar)
+5. Changes take effect immediately on the next Logic App run
 
-**Fixed Parameters (set at deployment):**
+**Example parameters section (at end of JSON):**
+```json
+"parameters": {
+  "$connections": { ... },
+  "scaleUpThreshold": {
+    "value": 100
+  },
+  "scaleDownThreshold": {
+    "value": 50
+  },
+  "emailRecipient": {
+    "value": "newemail@company.com"
+  }
+}
+```
+
+**Fixed Parameters (set at deployment only):**
 - `fabricSubscriptionId`, `fabricResourceGroup`, `fabricCapacityName`
 - `fabricWorkspaceId`, `capacityMetricsDatasetId`
 
-**Or** via Logic App Designer:
-1. Go to **Logic App** > **Logic app designer**
-2. Parameters are referenced as `@parameters('parameterName')`
-3. To view/change: **Workflow settings** (top toolbar)
-4. Click **Save**
+**Note:** The Parameters page in the Settings section shows these values as read-only "Actual values". To edit them, use the Logic app code view method above.
 
 ### Available Fabric SKUs
 

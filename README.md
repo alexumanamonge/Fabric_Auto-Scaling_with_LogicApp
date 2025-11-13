@@ -105,15 +105,19 @@ The Logic App runs on a schedule (default: every 5 minutes) to monitor and scale
 
 ### Post-Deployment Parameter Changes
 
-After deployment, you can adjust scaling behavior **without redeploying** by editing parameters in Azure Portal:
+After deployment, you can adjust scaling behavior **without redeploying**:
 
-**Editable Parameters:**
-- `scaleUpThreshold`, `scaleDownThreshold` - Adjust CPU thresholds
-- `scaleUpSku`, `scaleDownSku` - Change target SKUs
-- `scaleUpMinutes`, `scaleDownMinutes` - Modify evaluation windows
-- `emailRecipient` - Change notification email address
+**How to Edit Parameters:**
+1. Go to **Logic App** > **Logic app code view** (under Development Tools)
+2. Scroll to the **bottom of the JSON** to find the `"parameters"` section
+3. Edit the values for any of these parameters:
+   - `scaleUpThreshold`, `scaleDownThreshold` - Adjust CPU thresholds
+   - `scaleUpSku`, `scaleDownSku` - Change target SKUs
+   - `scaleUpMinutes`, `scaleDownMinutes` - Modify evaluation windows
+   - `emailRecipient` - Change notification email address
+4. Click **Save** - changes take effect immediately
 
-Go to: **Logic App** > **Parameters** > Edit values > **Save**
+**Note:** These parameters show as read-only in the Parameters page UI, but are editable via the code view.
 
 ## 📧 Email Notifications
 
